@@ -668,6 +668,21 @@ main:focus { outline: none; }
 .status.err { color: var(--err); }
 
 /* collapsed About / FAQ: present for readers and crawlers, out of the way for everyone else */
+/* link to the accuracy league table, between the settings and About */
+.acc-promo {
+  display: flex; align-items: center; gap: 12px;
+  width: fit-content; max-width: 100%; box-sizing: border-box;
+  margin: 18px 0 0; padding: 10px 16px;
+  background: var(--card); color: var(--text);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); text-decoration: none;
+}
+.acc-promo:hover { border-color: var(--accent); }
+.acc-promo:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.acc-promo-icon { font-size: 1.5em; line-height: 1; }
+.acc-promo strong { display: block; color: var(--accent); }
+.acc-promo-sub { display: block; color: var(--dim); font-size: .88em; }
+
 .about { margin: 18px 0 0; color: var(--dim-bg); font-size: .88em; }
 .about summary { cursor: pointer; color: var(--dim-bg); width: max-content; }
 .about summary:hover { color: var(--text-bg); }

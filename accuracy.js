@@ -257,7 +257,7 @@
 
   var $ = function (s) { return document.querySelector(s); };
   var OWN_KEY = 'cw-acc-v1', MAIN_KEY = 'cw-v3';   // MAIN_KEY: the forecast page's saved place, units and colour mode (read only)
-  var state = { place: null, places: [], lead: 3, period: 30, by: 'temp', imperial: false };
+  var state = { place: null, places: [], lead: 3, period: 30, by: 'temp', imperial: false, dark: false, enabled: {} };
   var cache = {}, seq = 0, MAX_PLACES = 10;   // MAX_PLACES as in app.js
 
   function readJson(k) { try { return JSON.parse(localStorage.getItem(k) || 'null') || {}; } catch (e) { return {}; } }
@@ -323,7 +323,9 @@
 
   function load() {
     var main = readJson(MAIN_KEY), own = readJson(OWN_KEY), q = new URLSearchParams(location.search);
-    if (main.mode === 'dark') document.documentElement.setAttribute('data-mode', 'dark');
+    state.dark = main.mode === 'dark';
+    if (state.dark) document.documentElement.setAttribute('data-mode', 'dark');
+    state.enabled = main.enabled || {};
     state.imperial = main.units === 'imperial';
     state.places = (main.places || []).filter(function (p) { return p && isFinite(+p.lat) && isFinite(+p.lon); })
       .map(function (p) { return { name: p.name || '', where: p.where || '', lat: +p.lat, lon: +p.lon, used: +p.used || 0 }; });
@@ -362,6 +364,60 @@
     $('#toForecast').href = '/?' + f.toString();
   }
 
+  /* Colour mode, as on the forecast page: the background follows the current hour's sky at the
+     place - the most common weather code across the models switched on there, night from their
+     is_day. theme-boot.js has already painted a first guess before load; this confirms it and
+     follows place changes. skyClass is a copy of app.js's - keep the two in step. */
+  var SKY_KEY = 'cw-sky-v1', skySeq = 0;
+  function skyClass(code) {
+    if (code == null) return '';
+    if (code <= 1) return 'clear';
+    if (code === 2) return 'partly';
+    if (code === 3) return 'overcast';
+    if (code === 45 || code === 48) return 'fog';
+    if (code >= 95) return 'storm';
+    if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow';
+    if (code >= 51) return 'rain';
+    return '';
+  }
+  function setSky(s) {
+    var root = document.documentElement;
+    if (s.sky) root.setAttribute('data-sky', s.sky); else root.removeAttribute('data-sky');
+    if (s.night) root.setAttribute('data-night', '1'); else root.removeAttribute('data-night');
+    var meta = $('meta[name="theme-color"]'), bg = getComputedStyle(root).getPropertyValue('--bg').trim();
+    if (meta && bg) meta.setAttribute('content', bg);
+  }
+  function nightGuess(p) {
+    var n = new Date(), h = (n.getUTCHours() + n.getUTCMinutes() / 60 + p.lon / 15 + 48) % 24;
+    return h < 6 || h >= 18;
+  }
+  function refreshSky() {
+    if (state.dark || !state.place) return;
+    var p = state.place, c = readJson(SKY_KEY), mine = ++skySeq, cached = c.t && samePlace(c, p);
+    if (cached && Date.now() - c.t < 30 * 60e3) { setSky(c); return; }
+    if (!cached) setSky({ sky: '', night: nightGuess(p) });   // new place: clock guess until the check lands
+    var ids = MODELS.filter(function (m) { return state.enabled[m.id] !== false; }).map(function (m) { return m.id; });
+    var u = new URL('https://api.open-meteo.com/v1/forecast');
+    u.searchParams.set('latitude', p.lat); u.searchParams.set('longitude', p.lon); u.searchParams.set('timezone', 'auto');
+    u.searchParams.set('current', 'is_day'); u.searchParams.set('hourly', 'weather_code,is_day');
+    u.searchParams.set('forecast_days', '1'); u.searchParams.set('models', ids.join(','));
+    getJson(u, 'Open-Meteo').then(function (j) {
+      if (mine !== skySeq || !j.current || !j.hourly) return;
+      var now = String(j.current.time).slice(0, 13), i = -1, counts = {}, best = null, day = null;
+      for (var k = 0; k < j.hourly.time.length; k++) if (j.hourly.time[k].slice(0, 13) === now) { i = k; break; }
+      if (i < 0) return;
+      ids.forEach(function (id) {
+        var code = (j.hourly['weather_code_' + id] || [])[i], d = (j.hourly['is_day_' + id] || [])[i];
+        if (code != null) { counts[code] = (counts[code] || 0) + 1; if (best == null || counts[code] > counts[best]) best = code; }
+        if (day == null && d != null) day = d;
+      });
+      if (day == null) day = j.current.is_day;
+      var s = { sky: skyClass(best == null ? null : +best), night: day === 0 };
+      setSky(s);
+      try { localStorage.setItem(SKY_KEY, JSON.stringify({ lat: p.lat, lon: p.lon, sky: s.sky, night: s.night, t: Date.now() })); } catch (e) { /* private mode */ }
+    }).catch(function () { /* keep the guess */ });
+  }
+
   function renderPlace() {
     renderTabs();
     var p = state.place;
@@ -393,7 +449,7 @@
 
   function run() {
     pressed('#lead', 'data-lead', state.lead); pressed('#period', 'data-period', state.period); pressed('#by', 'data-by', state.by);
-    renderPlace(); save();
+    renderPlace(); save(); refreshSky();
     if (!state.place) { setStatus('Search for a place above, or press Find me, to score the models there.'); return; }
     var p = state.place, key = [p.lat.toFixed(3), p.lon.toFixed(3), state.lead, state.period, state.imperial].join('|');
     if (cache[key]) { setStatus(''); draw(cache[key]); return; }

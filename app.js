@@ -1136,6 +1136,12 @@
       var s = currentSky();
       if (s && s.sky) root.setAttribute('data-sky', s.sky); else root.removeAttribute('data-sky');
       if (s && s.night) root.setAttribute('data-night', '1'); else root.removeAttribute('data-night');
+      // remembered for the accuracy page, which paints this same sky before its own check (theme-boot.js)
+      if (s && state.place) {
+        try {
+          localStorage.setItem('cw-sky-v1', JSON.stringify({ lat: state.place.lat, lon: state.place.lon, sky: s.sky || '', night: !!s.night, t: Date.now() }));
+        } catch (e) { /* private mode etc. */ }
+      }
     }
     var meta = $('meta[name="theme-color"]');
     if (meta) {
