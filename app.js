@@ -1125,6 +1125,21 @@
     return { sky: skyClass(code), night: night };
   }
 
+  // Before this place's forecast has arrived: the sky last shown for it (cw-sky-v1, under 3 h
+  // old), else night or day from the sun's hour at its longitude, else (no place yet) from this
+  // device's clock. Same rules as theme-boot.js, which applies them before the first paint.
+  function guessSky() {
+    var p = state.place, now = new Date(), h;
+    if (p) {
+      try {
+        var c = JSON.parse(localStorage.getItem('cw-sky-v1') || 'null');
+        if (c && samePlace(c, p) && Date.now() - c.t < 3 * 3600e3) return { sky: c.sky, night: c.night };
+      } catch (e) { /* ignore */ }
+      h = (now.getUTCHours() + now.getUTCMinutes() / 60 + p.lon / 15 + 48) % 24;
+    } else h = now.getHours() + now.getMinutes() / 60;
+    return { sky: '', night: h < 6 || h >= 18 };
+  }
+
   function applyTheme() {
     var root = document.documentElement;
     if (state.mode === 'dark') {
@@ -1133,11 +1148,14 @@
       root.removeAttribute('data-night');
     } else {
       root.removeAttribute('data-mode');
-      var s = currentSky();
+      // wait for the hourly data (the current hour's sky) rather than flicking through today's
+      // daily code first; if the hourly request fails, hourlyReady is set and the daily code is used
+      var s = state.hourlyReady ? currentSky() : null, real = !!s;
+      if (!s) s = guessSky();   // still loading: a likely look, not the bright default (no night-time flash)
       if (s && s.sky) root.setAttribute('data-sky', s.sky); else root.removeAttribute('data-sky');
       if (s && s.night) root.setAttribute('data-night', '1'); else root.removeAttribute('data-night');
-      // remembered for the accuracy page, which paints this same sky before its own check (theme-boot.js)
-      if (s && state.place) {
+      // remembered for the next load and the accuracy page, which paint it before any data (theme-boot.js)
+      if (real && state.place) {
         try {
           localStorage.setItem('cw-sky-v1', JSON.stringify({ lat: state.place.lat, lon: state.place.lon, sky: s.sky || '', night: !!s.night, t: Date.now() }));
         } catch (e) { /* private mode etc. */ }
@@ -1261,6 +1279,7 @@
         if (token !== state.token) return;
         state.hourlyReady = true;
         state.hourlyError = 'Hourly detail unavailable: ' + e.message;
+        applyTheme();   // fall back to today's daily sky
         loadingStatus();
       });
 
