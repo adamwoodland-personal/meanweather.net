@@ -41,9 +41,11 @@
   /* ---------------- requests ---------------- */
 
   function isoDay(ms) { return new Date(ms).toISOString().slice(0, 10); }
+  // Requested in UTC dates, but the APIs return the place's local days (timezone=auto), so ask
+  // for a day extra at each end; score() then keeps the last `period` complete local days.
   function windowFor(period, nowMs) {
     var end = nowMs - ERA5_LAG_DAYS * 864e5;
-    return { start: isoDay(end - (period - 1) * 864e5), end: isoDay(end) };
+    return { start: isoDay(end - period * 864e5), end: isoDay(end + 864e5), period: period };
   }
   function common(u, place, win, imperial) {
     u.searchParams.set('latitude', place.lat);
@@ -83,8 +85,9 @@
     return v.reduce(function (s, x) { return s + x; }, 0);
   }
 
-  // prev / truth: the two JSON responses. Returns per-model daily errors and their means.
-  function score(prev, truth, lead) {
+  // prev / truth: the two JSON responses. Returns per-model daily errors (aligned to `days`).
+  // period: keep only the last `period` complete local days (see windowFor).
+  function score(prev, truth, lead, period) {
     var th = truth.hourly, ph = prev.hourly, at = {};
     ph.time.forEach(function (t, i) { at[t] = i; });
     var byDay = {}, order = [];
@@ -101,21 +104,22 @@
       days.push({ day: d, hi: hi, lo: agg(th.temperature_2m, idx, 'min'), wet: rain == null ? null : rain >= WET_MM,
         p: idx.map(function (i) { return at[th.time[i]]; }) });
     });
+    if (period && days.length > period) days = days.slice(days.length - period);
     var models = MODELS.map(function (m) {
       var T = ph['temperature_2m_previous_day' + lead + '_' + m.id], R = ph['precipitation_previous_day' + lead + '_' + m.id];
-      var e = { temp: [], hi: [], lo: [], rain: [] }, bias = [], n = 0, rainN = 0;
+      var e = { temp: [], hi: [], lo: [], rain: [], bias: [] };
       days.forEach(function (d, k) {
         var fhi = T ? agg(T, d.p, 'max') : null, flo = T ? agg(T, d.p, 'min') : null, fr = R ? agg(R, d.p, 'sum') : null;
         if (fhi != null && flo != null && d.lo != null) {
           e.hi[k] = Math.abs(fhi - d.hi); e.lo[k] = Math.abs(flo - d.lo); e.temp[k] = (e.hi[k] + e.lo[k]) / 2;
-          bias.push((fhi - d.hi + flo - d.lo) / 2); n++;
-        } else { e.hi[k] = e.lo[k] = e.temp[k] = null; }
-        if (fr != null && d.wet != null) { e.rain[k] = (fr >= WET_MM) === d.wet ? 0 : 1; rainN++; } else e.rain[k] = null;
+          e.bias[k] = (fhi - d.hi + flo - d.lo) / 2;
+        } else { e.hi[k] = e.lo[k] = e.temp[k] = e.bias[k] = null; }
+        e.rain[k] = fr != null && d.wet != null ? ((fr >= WET_MM) === d.wet ? 0 : 1) : null;
       });
-      return { id: m.id, name: m.name, org: m.org, n: n, rainN: rainN, errs: e, bias: mean(bias),
-        mean: { temp: mean(e.temp), hi: mean(e.hi), lo: mean(e.lo), rain: mean(e.rain) } };
+      return { id: m.id, name: m.name, org: m.org, errs: e };
     });
     return { lead: lead, days: days.map(function (d) { return d.day; }), models: models,
+      tempDays: days.length, rainDays: days.filter(function (d) { return d.wet != null; }).length,
       wetDays: days.filter(function (d) { return d.wet === true; }).length };
   }
 
@@ -142,17 +146,49 @@
   }
   function tooClose(a, b) { return compare(a, b).tie; }
 
+  /* Ranking on common days. Every ranked model is scored on exactly the same days - those all
+     of them have forecasts for - so one that is missing awkward days cannot win by it. A model
+     with forecasts for less than COVER of the days ERA5 covers is left out (with the reason)
+     rather than shrinking everyone's sample. Temperature columns (temp, hi, lo, bias) share one
+     set of days; rain has its own (ERA5 rain can be missing on days temperature is not). */
+  var COVER = 0.8;
+  function count(a) { var n = 0; for (var k = 0; k < a.length; k++) if (a[k] != null) n++; return n; }
+  function meanOn(a, mask) {
+    var s = 0, n = 0;
+    for (var k = 0; k < mask.length; k++) if (mask[k] && a[k] != null) { s += a[k]; n++; }
+    return n ? s / n : null;
+  }
+  function masked(a, mask) { return mask.map(function (on, k) { return on ? a[k] : null; }); }
+  function family(res, key, total) {
+    var inn = [], out = [];
+    res.models.forEach(function (m) {
+      var n = count(m.errs[key]);
+      if (n >= MIN_DAYS && n >= COVER * total) inn.push(m); else out.push({ m: m, n: n });
+    });
+    var mask = res.days.map(function (d, k) { return inn.length > 0 && inn.every(function (m) { return m.errs[key][k] != null; }); });
+    var n = mask.filter(Boolean).length;
+    if (n < MIN_DAYS) { inn.forEach(function (m) { out.push({ m: m, n: n }); }); inn = []; }
+    return { inn: inn, out: out, mask: mask, n: n, total: total };
+  }
+
   function rank(res, by) {
-    var ok = res.models.filter(function (m) { return (by === 'rain' ? m.rainN : m.n) >= MIN_DAYS && m.mean[by] != null; });
-    ok.sort(function (a, b) { return a.mean[by] - b.mean[by] || a.name.localeCompare(b.name); });
-    var top = ok[0];
-    return {
-      rows: ok.map(function (m, i) {
-        var st = i > 0 ? compare(m.errs[by], top.errs[by]) : null;
-        return { m: m, pos: i + 1, tie: !!(st && st.tie), stats: st, top: top };
-      }),
-      left: res.models.filter(function (m) { return ok.indexOf(m) < 0; })
-    };
+    var T = family(res, 'temp', res.tempDays), R = family(res, 'rain', res.rainDays), F = by === 'rain' ? R : T;
+    var rows = F.inn.map(function (m) {
+      var t = T.inn.indexOf(m) >= 0, r = R.inn.indexOf(m) >= 0;
+      return { m: m, mean: {
+        temp: t ? meanOn(m.errs.temp, T.mask) : null, hi: t ? meanOn(m.errs.hi, T.mask) : null,
+        lo: t ? meanOn(m.errs.lo, T.mask) : null, bias: t ? meanOn(m.errs.bias, T.mask) : null,
+        rain: r ? meanOn(m.errs.rain, R.mask) : null } };
+    });
+    rows.sort(function (a, b) { return a.mean[by] - b.mean[by] || a.m.name.localeCompare(b.m.name); });
+    var top = rows[0];
+    rows.forEach(function (row, i) {
+      row.pos = i + 1;
+      row.top = top.m;
+      row.stats = i > 0 ? compare(masked(row.m.errs[by], F.mask), masked(top.m.errs[by], F.mask)) : null;
+      row.tie = !!(row.stats && row.stats.tie);
+    });
+    return { rows: rows, left: F.out, days: F.n, total: F.total };
   }
 
   // The "too close to call" popup text: first line is the heading, then one paragraph per line.
@@ -200,43 +236,44 @@
       '<th scope="col" class="' + cls('hi') + '">Highs<span class="u">avg error</span></th>' +
       '<th scope="col" class="' + cls('lo') + '">Lows<span class="u">avg error</span></th>' +
       '<th scope="col">Tends to run</th>' +
-      '<th scope="col" class="' + cls('rain') + '">Rain<span class="u">wet/dry right</span></th>' +
-      '<th scope="col" class="num">Days</th></tr></thead><tbody>';
+      '<th scope="col" class="' + cls('rain') + '">Rain<span class="u">wet/dry right</span></th></tr></thead><tbody>';
     r.rows.forEach(function (row) {
-      var m = row.m, mm = m.mean;
+      var m = row.m, mm = row.mean;
       h += '<tr class="' + (row.pos === 1 ? 'lead' : row.tie ? 'tie' : '') + '">' +
         '<td class="pos">' + (row.pos <= 3 ? '<span class="medal" aria-hidden="true">' + MEDAL[row.pos - 1] + '</span>' : '') + row.pos + '</td>' +
         '<th scope="row">' + esc(m.name) + '<span class="org">' + esc(m.org) + '</span>' +
         (row.tie ? (function () {
           var d = tieDetail(row, by, imperial);
-          return '<button type="button" class="acc-tie" aria-haspopup="dialog" data-detail="' + esc(d) + '" title="' + esc(d.split('\n').slice(1).join(' ')) + '">too close to call</button>';
+          return '<button type="button" class="acc-tie" aria-haspopup="dialog" aria-controls="accPop" aria-expanded="false" data-detail="' + esc(d) +
+            '" title="' + esc(d.split('\n').slice(1).join(' ')) + '">too close to call</button>';
         })() : '') + '</th>' +
         '<td class="' + cls('temp') + '">' + (mm.temp == null ? '–' : deg(mm.temp, imperial)) + '</td>' +
         '<td class="' + cls('hi') + '">' + (mm.hi == null ? '–' : deg(mm.hi, imperial)) + '</td>' +
         '<td class="' + cls('lo') + '">' + (mm.lo == null ? '–' : deg(mm.lo, imperial)) + '</td>' +
-        '<td>' + biasText(m.bias, imperial) + '</td>' +
-        '<td class="' + cls('rain') + '">' + (mm.rain == null ? '–' : pct(mm.rain)) + '</td>' +
-        '<td class="num">' + (by === 'rain' ? m.rainN : m.n) + '</td></tr>';
+        '<td>' + biasText(mm.bias, imperial) + '</td>' +
+        '<td class="' + cls('rain') + '">' + (mm.rain == null ? '–' : pct(mm.rain)) + '</td></tr>';
     });
     h += '</tbody></table>';
-    if (r.left.length) h += '<p class="acc-note">Not ranked (fewer than ' + MIN_DAYS + ' scoreable days here): ' +
-      esc(listNames(r.left.map(function (m) { return m.name; }))) + '.</p>';
+    if (r.rows.length) h += '<p class="acc-note">Every model above is scored on the same ' + r.days + ' days' +
+      (r.days < r.total ? ' (of ' + r.total + ' with a record of what happened: the days they all have forecasts for)' : '') + '.</p>';
+    if (r.left.length) h += '<p class="acc-note">Not ranked - forecasts missing on too many days here: ' +
+      esc(listNames(r.left.map(function (x) { return x.m.name + ' (' + x.n + ' of ' + r.total + ')'; }))) + '.</p>';
     return h;
   }
 
   function summaryHTML(res, by, imperial) {
     var r = rank(res, by);
     if (!r.rows.length) return 'Not enough forecasts to score this place for the period.';
-    var top = r.rows[0].m, mm = top.mean;
+    var top = r.rows[0].m, mm = r.rows[0].mean;
     var what = by === 'rain' ? 'It called the day wet or dry correctly on ' + pct(mm.rain) + ' of days.'
       : by === 'hi' ? 'Its forecast highs were off by ' + deg(mm.hi, imperial) + ' on average.'
       : by === 'lo' ? 'Its forecast lows were off by ' + deg(mm.lo, imperial) + ' on average.'
       : 'Its forecast highs and lows were off by ' + deg(mm.temp, imperial) + ' on average.';
     var ties = r.rows.filter(function (x) { return x.tie; }).map(function (x) { return x.m.name; });
-    var last = r.rows[r.rows.length - 1].m;
+    var lastRow = r.rows[r.rows.length - 1], last = lastRow.m;
     return 'Most accurate here, ' + aheadText(res.lead) + ': <strong>' + esc(top.name) + '</strong> (' + esc(top.org) + '). ' + what + ' ' +
-      (ties.length ? 'Too close to call with it: ' + esc(listNames(ties)) + '.' : 'Clearly ahead of the rest over this period.') +
-      (r.rows.length > 2 ? ' Bottom of the table: ' + esc(last.name) + ' (' + (by === 'rain' ? pct(last.mean.rain) : deg(last.mean[by], imperial)) + ').' : '');
+      (ties.length ? 'Too close to call with it: ' + esc(listNames(ties)) + '.' : 'The others trail by more than this simple test puts down to chance - over this period, at least.') +
+      (r.rows.length > 2 ? ' Bottom of the table: ' + esc(last.name) + ' (' + (by === 'rain' ? pct(lastRow.mean.rain) : deg(lastRow.mean[by], imperial)) + ').' : '');
   }
 
   function fmtDay(d, withYear) {
@@ -258,7 +295,7 @@
   var $ = function (s) { return document.querySelector(s); };
   var OWN_KEY = 'cw-acc-v1', MAIN_KEY = 'cw-v3';   // MAIN_KEY: the forecast page's saved place, units and colour mode (read only)
   var state = { place: null, places: [], lead: 3, period: 30, by: 'temp', imperial: false, dark: false, enabled: {} };
-  var cache = {}, seq = 0, MAX_PLACES = 10;   // MAX_PLACES as in app.js
+  var cache = {}, seq = 0, searchSeq = 0, MAX_PLACES = 10;   // MAX_PLACES as in app.js
 
   function readJson(k) { try { return JSON.parse(localStorage.getItem(k) || 'null') || {}; } catch (e) { return {}; } }
   function setStatus(msg, err) { var s = $('#status'); s.textContent = msg || ''; s.classList.toggle('err', !!err); }
@@ -327,7 +364,7 @@
     if (state.dark) document.documentElement.setAttribute('data-mode', 'dark');
     state.enabled = main.enabled || {};
     state.imperial = main.units === 'imperial';
-    state.places = (main.places || []).filter(function (p) { return p && isFinite(+p.lat) && isFinite(+p.lon); })
+    state.places = (Array.isArray(main.places) ? main.places : []).filter(function (p) { return p && isFinite(+p.lat) && isFinite(+p.lon); })
       .map(function (p) { return { name: p.name || '', where: p.where || '', lat: +p.lat, lon: +p.lon, used: +p.used || 0 }; });
     if (main.place && isFinite(+main.place.lat) && isFinite(+main.place.lon)) {
       state.place = state.places.filter(function (p) { return samePlace(p, main.place); })[0] ||
@@ -450,10 +487,11 @@
   function run() {
     pressed('#lead', 'data-lead', state.lead); pressed('#period', 'data-period', state.period); pressed('#by', 'data-by', state.by);
     renderPlace(); save(); refreshSky();
+    var mine = ++seq;   // claim the turn first, so a slower fetch for an earlier choice can never draw over this one
     if (!state.place) { setStatus('Search for a place above, or press Find me, to score the models there.'); return; }
     var p = state.place, key = [p.lat.toFixed(3), p.lon.toFixed(3), state.lead, state.period, state.imperial].join('|');
     if (cache[key]) { setStatus(''); draw(cache[key]); return; }
-    var mine = ++seq, win = core.windowFor(state.period, Date.now());
+    var win = core.windowFor(state.period, Date.now());
     $('#summary').textContent = ''; $('#tableWrap').textContent = ''; $('#caption').textContent = '';
     setStatus('Fetching ' + state.period + ' days of forecasts and what actually happened…');
     Promise.all([
@@ -461,7 +499,7 @@
       getJson(core.truthUrl(p, win, state.imperial), 'ERA5 archive')
     ]).then(function (r) {
       if (mine !== seq) return;
-      var res = core.score(r[0], r[1], state.lead);
+      var res = core.score(r[0], r[1], state.lead, win.period);
       if (!res.days.length) { setStatus('ERA5 has no data for this place and period yet.', true); return; }
       cache[key] = res; setStatus(''); draw(res);
     }).catch(function (e) {
@@ -535,10 +573,13 @@
      (built by tieDetail, so the pre-rendered examples carry it too). Positioned like the
      forecast page's .pop. */
   var pop = null, popAnchor = null;
-  function closePop() {
+  function closePop(refocus) {
+    var a = popAnchor;
     if (pop) pop.hidden = true;
-    if (popAnchor) popAnchor.setAttribute('aria-expanded', 'false');
     popAnchor = null;
+    if (!a) return;
+    a.setAttribute('aria-expanded', 'false');
+    if (refocus && document.body.contains(a)) a.focus();   // Escape: back to the button, not lost in a hidden popup
   }
   function openPop(btn) {
     if (popAnchor === btn) { closePop(); return; }
@@ -571,7 +612,7 @@
       if (tie) { openPop(tie); return; }
       if (!e.target.closest('#accPop')) closePop();
     });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closePop(); $('#locResults').hidden = true; } });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closePop(true); $('#locResults').hidden = true; } });
     window.addEventListener('resize', closePop);
     $('#lead').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { state.lead = +b.getAttribute('data-lead'); run(); } });
     $('#period').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { state.period = +b.getAttribute('data-period'); run(); } });
@@ -581,7 +622,9 @@
       var q = $('#locInput').value.trim();
       if (!q) return;
       setStatus('Searching…');
-      geocode(q).then(function (list) { setStatus(''); showResults(list); }, function () { setStatus('Place search failed. Try again.', true); });
+      var mine = ++searchSeq;   // only the latest search may show its results
+      geocode(q).then(function (list) { if (mine !== searchSeq) return; setStatus(''); showResults(list); },
+        function () { if (mine === searchSeq) setStatus('Place search failed. Try again.', true); });
     });
     document.addEventListener('click', function (e) { if (!e.target.closest('#locForm')) $('#locResults').hidden = true; });
     if (navigator.geolocation) $('#findMe').addEventListener('click', findMe); else $('#findMe').hidden = true;
