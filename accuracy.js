@@ -122,28 +122,59 @@
   // Is model a not clearly worse than the leader b? Paired daily differences, with the
   // standard error widened for day-to-day correlation (weather errors come in spells, so a
   // month holds fewer independent days than it looks). "Too close" = mean gap < 1.96 SE.
-  function tooClose(a, b) {
+  // Returns the working too, for the "too close to call" popup.
+  function compare(a, b) {
     var d = [];
     for (var k = 0; k < a.length; k++) if (a[k] != null && b[k] != null) d.push(a[k] - b[k]);
-    var n = d.length;
-    if (n < MIN_DAYS) return false;
+    var n = d.length, s = { n: n, worse: 0, better: 0, level: 0, gap: 0, need: 0, neff: n, tie: false };
+    if (n < MIN_DAYS) return s;
+    d.forEach(function (x) { if (x > 1e-9) s.worse++; else if (x < -1e-9) s.better++; else s.level++; });
     var mu = mean(d), v = 0, c = 0;
     for (var i = 0; i < n; i++) v += (d[i] - mu) * (d[i] - mu);
-    if (v === 0) return mu <= 0;
+    s.gap = mu;
+    if (v === 0) { s.tie = mu <= 0; return s; }
     for (var j = 1; j < n; j++) c += (d[j] - mu) * (d[j - 1] - mu);
     var r = Math.max(0, Math.min(0.9, c / v));               // lag-1 autocorrelation
-    var neff = Math.max(2, n * (1 - r) / (1 + r));
-    return mu <= 1.96 * Math.sqrt(v / (n - 1)) / Math.sqrt(neff);
+    s.neff = Math.max(2, n * (1 - r) / (1 + r));
+    s.need = 1.96 * Math.sqrt(v / (n - 1)) / Math.sqrt(s.neff);
+    s.tie = mu <= s.need;
+    return s;
   }
+  function tooClose(a, b) { return compare(a, b).tie; }
 
   function rank(res, by) {
     var ok = res.models.filter(function (m) { return (by === 'rain' ? m.rainN : m.n) >= MIN_DAYS && m.mean[by] != null; });
     ok.sort(function (a, b) { return a.mean[by] - b.mean[by] || a.name.localeCompare(b.name); });
     var top = ok[0];
     return {
-      rows: ok.map(function (m, i) { return { m: m, pos: i + 1, tie: i > 0 && tooClose(m.errs[by], top.errs[by]) }; }),
+      rows: ok.map(function (m, i) {
+        var st = i > 0 ? compare(m.errs[by], top.errs[by]) : null;
+        return { m: m, pos: i + 1, tie: !!(st && st.tie), stats: st, top: top };
+      }),
       left: res.models.filter(function (m) { return ok.indexOf(m) < 0; })
     };
+  }
+
+  // The "too close to call" popup text: first line is the heading, then one paragraph per line.
+  var WHAT = { temp: 'temperature error (the average of its high and low errors)', hi: 'error in the day’s high', lo: 'error in the day’s low' };
+  function tieDetail(row, by, imperial) {
+    var m = row.m, t = row.top, s = row.stats, u = imperial ? ' °F' : ' °C';
+    var lines = [m.name + ' vs ' + t.name + ', the leader'];
+    if (by === 'rain') {
+      var extra = s.worse - s.better, needDays = Math.max(1, Math.ceil(s.need * s.n));
+      lines.push('Compared on ' + s.n + ' days. ' + m.name + ' made the wrong wet/dry call while ' + t.name + ' got it right on ' + s.worse +
+        ' days, and the reverse happened on ' + s.better + '; on the other ' + s.level + ' they agreed.');
+      lines.push('That leaves ' + m.name + ' ' + extra + ' wrong call' + (extra === 1 ? '' : 's') + ' behind. To count as clearly worse it would need to be about ' +
+        needDays + ' or more behind over these days.');
+    } else {
+      lines.push('Compared on ' + s.n + ' days, using the ' + WHAT[by] + '. ' + m.name + ' was further out than ' + t.name + ' on ' + s.worse +
+        ' days, closer on ' + s.better + (s.level ? ' and level on ' + s.level : '') + '.');
+      lines.push('On average it was ' + s.gap.toFixed(2) + u + ' further out. To count as clearly worse, that average gap would need to be more than ' +
+        s.need.toFixed(2) + u + '.');
+    }
+    lines.push('The daily differences jump about and come in spells, so these ' + s.n + ' days are worth about ' + Math.round(s.neff) +
+      ' independent ones. The gap is inside the margin that noise alone could produce, so the two cannot be told apart on this data.');
+    return lines.join('\n');
   }
 
   /* ---------------- rendering (strings, shared with the Node snapshot) ---------------- */
@@ -176,7 +207,10 @@
       h += '<tr class="' + (row.pos === 1 ? 'lead' : row.tie ? 'tie' : '') + '">' +
         '<td class="pos">' + (row.pos <= 3 ? '<span class="medal" aria-hidden="true">' + MEDAL[row.pos - 1] + '</span>' : '') + row.pos + '</td>' +
         '<th scope="row">' + esc(m.name) + '<span class="org">' + esc(m.org) + '</span>' +
-        (row.tie ? '<span class="acc-tie">too close to call</span>' : '') + '</th>' +
+        (row.tie ? (function () {
+          var d = tieDetail(row, by, imperial);
+          return '<button type="button" class="acc-tie" aria-haspopup="dialog" data-detail="' + esc(d) + '" title="' + esc(d.split('\n').slice(1).join(' ')) + '">too close to call</button>';
+        })() : '') + '</th>' +
         '<td class="' + cls('temp') + '">' + (mm.temp == null ? '–' : deg(mm.temp, imperial)) + '</td>' +
         '<td class="' + cls('hi') + '">' + (mm.hi == null ? '–' : deg(mm.hi, imperial)) + '</td>' +
         '<td class="' + cls('lo') + '">' + (mm.lo == null ? '–' : deg(mm.lo, imperial)) + '</td>' +
@@ -216,25 +250,86 @@
   }
 
   var core = { MODELS: MODELS, LEADS: LEADS, PERIODS: PERIODS, windowFor: windowFor, prevUrl: prevUrl, truthUrl: truthUrl,
-    score: score, rank: rank, tooClose: tooClose, tableHTML: tableHTML, summaryHTML: summaryHTML, captionText: captionText, esc: esc };
+    score: score, rank: rank, compare: compare, tooClose: tooClose, tieDetail: tieDetail, tableHTML: tableHTML, summaryHTML: summaryHTML, captionText: captionText, esc: esc };
   if (typeof module !== 'undefined' && module.exports) { module.exports = core; return; }
 
   /* ---------------- browser ---------------- */
 
   var $ = function (s) { return document.querySelector(s); };
   var OWN_KEY = 'cw-acc-v1', MAIN_KEY = 'cw-v3';   // MAIN_KEY: the forecast page's saved place, units and colour mode (read only)
-  var state = { place: null, lead: 3, period: 30, by: 'temp', imperial: false };
-  var cache = {}, seq = 0;
+  var state = { place: null, places: [], lead: 3, period: 30, by: 'temp', imperial: false };
+  var cache = {}, seq = 0, MAX_PLACES = 10;   // MAX_PLACES as in app.js
 
   function readJson(k) { try { return JSON.parse(localStorage.getItem(k) || 'null') || {}; } catch (e) { return {}; } }
   function setStatus(msg, err) { var s = $('#status'); s.textContent = msg || ''; s.classList.toggle('err', !!err); }
+
+  /* Recent places: the same list as the forecast page's tabs (cw-v3.places), with app.js's rules -
+     a picked place is added or touched, up to MAX_PLACES, oldest dropped. Only `places` and `place`
+     are written back; every other forecast-page setting is left as it was. */
+  function samePlace(a, b) { return Math.abs(a.lat - b.lat) < 0.0005 && Math.abs(a.lon - b.lon) < 0.0005; }
+  function rememberPlace(p) {
+    var hit = state.places.filter(function (x) { return samePlace(x, p); })[0];
+    if (hit) {
+      hit.used = Date.now();
+      if (p.name && p.name !== 'Your location') { hit.name = p.name; hit.where = p.where || hit.where; }
+      return hit;
+    }
+    var entry = { name: p.name || '', where: p.where || '', lat: +p.lat, lon: +p.lon, used: Date.now() };
+    state.places.push(entry);
+    while (state.places.length > MAX_PLACES) {
+      var oldest = null;
+      state.places.forEach(function (x) { if (x !== entry && (!oldest || x.used < oldest.used)) oldest = x; });
+      state.places.splice(state.places.indexOf(oldest), 1);
+    }
+    return entry;
+  }
+  function writeMain() {
+    try {
+      var m = readJson(MAIN_KEY);
+      m.places = state.places;
+      m.place = state.place && !state.place.temp ? state.place : null;
+      localStorage.setItem(MAIN_KEY, JSON.stringify(m));
+    } catch (e) { /* private mode etc. */ }
+  }
+  function setPlace(p) { state.place = rememberPlace(p); writeMain(); run(); return state.place; }
+  function forgetPlace(i) {
+    var gone = state.places[i];
+    if (!gone) return;
+    state.places.splice(i, 1);
+    if (gone === state.place) {
+      var next = state.places[i - 1] || state.places[i] || null;
+      if (next) { setPlace(next); return; }
+      state.place = { name: gone.name, where: gone.where, lat: gone.lat, lon: gone.lon, temp: true };  // keep showing it, unsaved
+    }
+    writeMain(); renderPlace();
+  }
+  function renderTabs() {
+    var nav = $('#tabs');
+    nav.textContent = '';
+    nav.hidden = !state.places.length;
+    state.places.forEach(function (p, i) {
+      var tab = el('div', 'tab' + (p === state.place ? ' on' : ''));
+      var go = el('button', 'go', p.name || (p.lat.toFixed(2) + ', ' + p.lon.toFixed(2)));
+      go.type = 'button'; go.dataset.i = i; go.title = p.where || '';
+      if (p === state.place) go.setAttribute('aria-current', 'true');
+      var x = el('button', 'x', '×');
+      x.type = 'button'; x.dataset.x = i;
+      x.title = 'Remove ' + (p.name || 'this place') + ' from the list';
+      x.setAttribute('aria-label', x.title);
+      tab.appendChild(go); tab.appendChild(x);
+      nav.appendChild(tab);
+    });
+  }
 
   function load() {
     var main = readJson(MAIN_KEY), own = readJson(OWN_KEY), q = new URLSearchParams(location.search);
     if (main.mode === 'dark') document.documentElement.setAttribute('data-mode', 'dark');
     state.imperial = main.units === 'imperial';
+    state.places = (main.places || []).filter(function (p) { return p && isFinite(+p.lat) && isFinite(+p.lon); })
+      .map(function (p) { return { name: p.name || '', where: p.where || '', lat: +p.lat, lon: +p.lon, used: +p.used || 0 }; });
     if (main.place && isFinite(+main.place.lat) && isFinite(+main.place.lon)) {
-      state.place = { name: main.place.name || '', where: main.place.where || '', lat: +main.place.lat, lon: +main.place.lon };
+      state.place = state.places.filter(function (p) { return samePlace(p, main.place); })[0] ||
+        rememberPlace({ name: main.place.name || '', where: main.place.where || '', lat: +main.place.lat, lon: +main.place.lon });
     }
     if (LEADS.indexOf(own.lead) >= 0) state.lead = own.lead;
     if (PERIODS.indexOf(own.period) >= 0) state.period = own.period;
@@ -242,7 +337,9 @@
     // a shared link wins
     var at = (q.get('at') || '').split(',');
     if (at.length === 2 && isFinite(+at[0]) && isFinite(+at[1]) && Math.abs(+at[0]) <= 90 && Math.abs(+at[1]) <= 180) {
-      state.place = { name: q.get('n') || (+at[0]).toFixed(2) + ', ' + (+at[1]).toFixed(2), where: q.get('w') || '', lat: +at[0], lon: +at[1] };
+      // like the forecast page, a shared link joins the recent places
+      state.place = rememberPlace({ name: q.get('n') || (+at[0]).toFixed(2) + ', ' + (+at[1]).toFixed(2), where: q.get('w') || '', lat: +at[0], lon: +at[1] });
+      writeMain();
     }
     if (LEADS.indexOf(+q.get('lead')) >= 0) state.lead = +q.get('lead');
     if (PERIODS.indexOf(+q.get('days')) >= 0) state.period = +q.get('days');
@@ -266,6 +363,7 @@
   }
 
   function renderPlace() {
+    renderTabs();
     var p = state.place;
     $('#placeName').textContent = p ? p.name : 'Choose a place';
     $('#placeMeta').textContent = p ? (p.where ? p.where + ' · ' : '') + p.lat.toFixed(2) + ', ' + p.lon.toFixed(2) : 'Search above, or press Find me';
@@ -277,6 +375,7 @@
   }
 
   function draw(res) {
+    closePop();   // its button is about to be replaced
     $('#summary').innerHTML = core.summaryHTML(res, state.by, state.imperial);
     $('#tableWrap').innerHTML = core.tableHTML(res, state.by, state.imperial);
     $('#caption').textContent = core.captionText(res);
@@ -348,7 +447,7 @@
       b.type = 'button';
       if (p.type) b.appendChild(el('span', 'type', p.type));
       b.appendChild(el('span', 'where', (p.where ? p.where + ' · ' : '') + p.lat.toFixed(2) + ', ' + p.lon.toFixed(2)));
-      b.addEventListener('click', function () { ul.hidden = true; $('#locInput').value = ''; state.place = p; run(); });
+      b.addEventListener('click', function () { ul.hidden = true; $('#locInput').value = ''; setPlace(p); });
       li.appendChild(b); ul.appendChild(li);
     });
     ul.hidden = false;
@@ -360,16 +459,15 @@
     navigator.geolocation.getCurrentPosition(function (pos) {
       btn.disabled = false;
       var lat = +pos.coords.latitude.toFixed(4), lon = +pos.coords.longitude.toFixed(4);
-      state.place = { name: 'Your location', where: '', lat: lat, lon: lon };
-      run();
+      var place = setPlace({ name: 'Your location', where: '', lat: lat, lon: lon });
       var u = new URL('https://photon.komoot.io/reverse');
       u.searchParams.set('lat', lat); u.searchParams.set('lon', lon); u.searchParams.set('lang', 'en');
       getJson(u, 'Photon').then(function (j) {
         var f = j.features && j.features[0], pr = f && f.properties;
-        if (!pr || !state.place || state.place.lat !== lat) return;
-        state.place.name = pr.district || pr.locality || pr.city || pr.county || pr.name || 'Your location';
-        state.place.where = [pr.city, pr.state, pr.country].filter(function (x) { return x && x !== state.place.name; }).join(', ');
-        renderPlace(); save();
+        if (!pr || state.place !== place) return;
+        place.name = pr.district || pr.locality || pr.city || pr.county || pr.name || 'Your location';
+        place.where = [pr.city, pr.state, pr.country].filter(function (x) { return x && x !== place.name; }).join(', ');
+        writeMain(); renderPlace(); save();
       }).catch(function () { /* keep "Your location" */ });
     }, function (err) {
       btn.disabled = false;
@@ -377,8 +475,48 @@
     }, { timeout: 15000, maximumAge: 600000 });
   }
 
+  /* "too close to call" popup: the working behind the call, from the button's data-detail
+     (built by tieDetail, so the pre-rendered examples carry it too). Positioned like the
+     forecast page's .pop. */
+  var pop = null, popAnchor = null;
+  function closePop() {
+    if (pop) pop.hidden = true;
+    if (popAnchor) popAnchor.setAttribute('aria-expanded', 'false');
+    popAnchor = null;
+  }
+  function openPop(btn) {
+    if (popAnchor === btn) { closePop(); return; }
+    closePop();
+    btn.setAttribute('aria-expanded', 'true');
+    var lines = (btn.getAttribute('data-detail') || '').split('\n');
+    pop.textContent = '';
+    pop.appendChild(el('h4', null, lines[0]));
+    lines.slice(1).forEach(function (t) { pop.appendChild(el('p', 'n', t)); });
+    pop.hidden = false;
+    popAnchor = btn;
+    var r = btn.getBoundingClientRect(), w = pop.offsetWidth, vw = document.documentElement.clientWidth;
+    pop.style.left = Math.max(8, Math.min(r.left + window.scrollX, window.scrollX + vw - w - 8)) + 'px';
+    pop.style.top = (r.bottom + window.scrollY + 6) + 'px';
+    pop.focus({ preventScroll: true });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
+    pop = $('#accPop');
     load();
+    $('#tabs').addEventListener('click', function (e) {
+      var x = e.target.closest('button.x');
+      if (x) { forgetPlace(+x.dataset.x); return; }
+      var go = e.target.closest('button.go');
+      var p = go && state.places[+go.dataset.i];
+      if (p && p !== state.place) setPlace(p);
+    });
+    document.addEventListener('click', function (e) {
+      var tie = e.target.closest('button.acc-tie');
+      if (tie) { openPop(tie); return; }
+      if (!e.target.closest('#accPop')) closePop();
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closePop(); $('#locResults').hidden = true; } });
+    window.addEventListener('resize', closePop);
     $('#lead').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { state.lead = +b.getAttribute('data-lead'); run(); } });
     $('#period').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { state.period = +b.getAttribute('data-period'); run(); } });
     $('#by').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { state.by = b.getAttribute('data-by'); run(); } });

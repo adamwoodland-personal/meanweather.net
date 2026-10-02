@@ -41,8 +41,28 @@ table.acc .org { display: block; font-weight: 400; font-size: .82em; color: var(
 table.acc .ranked { background: var(--accent-soft); font-weight: 600; }
 table.acc thead .ranked { color: var(--text); }
 table.acc tr.lead th, table.acc tr.lead td { font-weight: 700; }
-.acc-tie { display: inline-block; margin-top: 3px; padding: 1px 7px; border-radius: 999px; font-size: .74em; font-weight: 600;
-  border: 1px solid var(--accent); color: var(--accent); background: transparent; white-space: nowrap; }
+.acc-tie { display: inline-block; margin-top: 3px; padding: 1px 7px; border-radius: 999px; font: inherit; font-size: .74em; font-weight: 600;
+  border: 1px solid var(--accent); color: var(--accent); background: transparent; white-space: nowrap; line-height: 1.5; }
+button.acc-tie { cursor: pointer; }
+button.acc-tie:hover, button.acc-tie[aria-expanded="true"] { background: var(--accent-soft); }
+button.acc-tie:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.acc-tie-label { font-size: .8em; }
+
+/* "too close to call" popup (on style.css's .pop) */
+.acc-pop { max-width: 360px; }
+.acc-pop .n + .n { margin-top: 6px; }
+
+/* the "just for fun" note above the table */
+.acc-fun {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px dashed var(--accent);
+  background: var(--card);
+  color: var(--text);
+  font-size: .92em;
+}
+.acc-fun p { margin: 0; }
 /* own line under the model name; block, not table, so the table's border-collapse (inherited) can't square the pill */
 table.acc .acc-tie { display: block; width: max-content; }
 
