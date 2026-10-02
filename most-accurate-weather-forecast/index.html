@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Most accurate weather forecast where you are: 9 models scored</title>
+<meta name="description" content="Which weather forecast is most accurate where you live? Nine models - ECMWF, GFS, ICON, UKMO and more - scored on what really happened over the last month.">
+<link rel="canonical" href="https://meanweather.net/most-accurate-weather-forecast/">
+
+<meta property="og:type"        content="website">
+<meta property="og:url"         content="https://meanweather.net/most-accurate-weather-forecast/">
+<meta property="og:site_name"   content="meanweather.net">
+<meta property="og:title"       content="Which weather forecast is most accurate where you are?">
+<meta property="og:description" content="Nine weather models - ECMWF, GFS, ICON, UKMO and more - ranked on how their forecasts for your place turned out.">
+<meta property="og:image"       content="https://meanweather.net/og-image.png">
+<meta property="og:image:width"  content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale"      content="en_GB">
+<meta name="twitter:card"        content="summary_large_image">
+<meta name="twitter:title"       content="Which weather forecast is most accurate where you are?">
+<meta name="twitter:description" content="Nine weather models ranked on how their forecasts for your place turned out.">
+<meta name="twitter:image"       content="https://meanweather.net/og-image.png">
+
+<link rel="icon" href="/favicon.ico" sizes="48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#b7cde2">
+<meta name="robots" content="index, follow">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/accuracy.css">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Mean Weather", "item": "https://meanweather.net/" },
+        { "@type": "ListItem", "position": 2, "name": "Most accurate weather forecast", "item": "https://meanweather.net/most-accurate-weather-forecast/" }
+      ]
+    },
+    {
+      "@type": "WebPage",
+      "@id": "https://meanweather.net/most-accurate-weather-forecast/",
+      "url": "https://meanweather.net/most-accurate-weather-forecast/",
+      "name": "Which weather forecast is most accurate where you are?",
+      "description": "Nine global weather models ranked on how their forecasts for a chosen place turned out over the last month, scored against ERA5 reanalysis in the browser.",
+      "isPartOf": { "@type": "WebSite", "name": "Mean Weather", "url": "https://meanweather.net/" },
+      "author": { "@type": "Person", "name": "Adam Woodland", "url": "https://adamwoodland.com/" },
+      "inLanguage": "en-GB"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Which weather forecast is most accurate?",
+          "acceptedAnswer": { "@type": "Answer", "text": "There is no single answer: it depends on where you are, the season, what you measure and how far ahead. Official global verification has long ranked ECMWF's IFS at or near the top for forecasts several days ahead, but at one particular place another model - often one that blends in a regional high-resolution model - can do better. The table on this page scores nine models for the place you choose." }
+        },
+        {
+          "@type": "Question",
+          "name": "Is the European model (ECMWF) more accurate than the American model (GFS)?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Averaged over the whole globe, ECMWF's IFS usually verifies better than NOAA's GFS for forecasts several days ahead. At a single place over a single month the order often flips, and the gap between them is frequently too small to call. Choose your place to see how they compare there." }
+        },
+        {
+          "@type": "Question",
+          "name": "How is the accuracy measured?",
+          "acceptedAnswer": { "@type": "Answer", "text": "For every day in the period, each model's forecast made 1, 2, 3, 5 or 7 days earlier is taken from Open-Meteo's archive of previous model runs and compared with ERA5, the Copernicus reanalysis of what actually happened. The score is the average error in the daily high and low temperature, plus how often the model correctly called the day wet (1 mm of rain or more) or dry." }
+        },
+        {
+          "@type": "Question",
+          "name": "Why does the table stop about a week ago?",
+          "acceptedAnswer": { "@type": "Answer", "text": "ERA5, the record of what actually happened, is published about five days after the fact. Using a faster source would mean scoring the models against one of the models themselves, so the most recent days are left out until ERA5 covers them." }
+        },
+        {
+          "@type": "Question",
+          "name": "Why not use weather station readings?",
+          "acceptedAnswer": { "@type": "Answer", "text": "This page runs entirely in your browser, with no server or database, and free station data with worldwide coverage is not available that way. ERA5 is available for every point on Earth and treats every place the same way. It is a reconstruction from observations on a grid of roughly 9 to 25 km, so it smooths out very local effects, and it is produced by ECMWF, which may slightly favour ECMWF's own model." }
+        },
+        {
+          "@type": "Question",
+          "name": "Is anything sent or stored?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Nothing is tracked and there is no account. The coordinates of the place you choose go to Open-Meteo to fetch the forecasts and the ERA5 record, and anything you type in the search box goes to Photon to look the place up. Your choices are stored in this browser only." }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <div class="brand">
+    <p class="crumb"><a href="/">Mean Weather</a> <span aria-hidden="true">›</span> Forecast accuracy</p>
+    <h1>Which weather forecast is most accurate where you are?</h1>
+    <p class="sub">Nine weather models, scored on how their forecasts for your place actually turned out.</p>
+  </div>
+  <div class="where">
+    <form class="loc" id="locForm" autocomplete="off" role="search">
+      <input id="locInput" type="search" placeholder="Search a place…" aria-label="Search a place" required>
+      <button type="submit">Go</button>
+      <button type="button" id="findMe" class="ghost" title="Use this device's location (asks permission)">Find me</button>
+      <ul id="locResults" class="results" hidden></ul>
+    </form>
+    <div class="place">
+      <h2 id="placeName">Choose a place</h2>
+      <p id="placeMeta" class="meta"></p>
+    </div>
+  </div>
+</header>
+
+<main id="main" tabindex="-1">
+  <section class="acc-card" aria-labelledby="tableTitle">
+    <div class="acc-controls">
+      <div class="acc-ctl"><span class="acc-lbl" id="leadLbl">Forecast made</span>
+        <div id="lead" class="seg" role="group" aria-labelledby="leadLbl">
+          <button type="button" data-lead="1" aria-pressed="false">1 day</button>
+          <button type="button" data-lead="2" aria-pressed="false">2 days</button>
+          <button type="button" data-lead="3" aria-pressed="true">3 days</button>
+          <button type="button" data-lead="5" aria-pressed="false">5 days</button>
+          <button type="button" data-lead="7" aria-pressed="false">7 days</button>
+        </div><span class="acc-lbl">ahead</span></div>
+      <div class="acc-ctl"><span class="acc-lbl" id="periodLbl">Over the last</span>
+        <div id="period" class="seg" role="group" aria-labelledby="periodLbl">
+          <button type="button" data-period="30" aria-pressed="true">30 days</button>
+          <button type="button" data-period="90" aria-pressed="false">90 days</button>
+        </div></div>
+      <div class="acc-ctl"><span class="acc-lbl" id="byLbl">Rank by</span>
+        <div id="by" class="seg" role="group" aria-labelledby="byLbl">
+          <button type="button" data-by="temp" aria-pressed="true">Temperature</button>
+          <button type="button" data-by="hi" aria-pressed="false">Highs</button>
+          <button type="button" data-by="lo" aria-pressed="false">Lows</button>
+          <button type="button" data-by="rain" aria-pressed="false">Rain</button>
+        </div></div>
+    </div>
+    <h2 id="tableTitle" class="acc-title">League table</h2>
+    <p id="summary" class="acc-summary"></p>
+    <div id="tableWrap" class="acc-wrap"></div>
+    <p id="caption" class="acc-caption"></p>
+    <p id="status" class="status" role="status"></p>
+    <p class="acc-links"><a id="toForecast" href="/">See this place's forecast from all nine models</a></p>
+  </section>
+
+  <noscript><p class="status">The league table needs JavaScript: your browser fetches the forecasts and does the scoring itself, and nothing is tracked. The examples below were computed when this page was published.</p></noscript>
+
+  <section class="acc-card acc-text" aria-labelledby="limitsTitle">
+    <h2 id="limitsTitle">How to read this table, and its limits</h2>
+    <ul>
+      <li><strong>What is scored.</strong> For each day, each model's forecast made the chosen number of days earlier is compared with what actually happened: the error in the day's high and low temperature (taken from hourly values), and whether it called the day wet (1 mm of rain or more) or dry. <em>Temperature</em> ranks by the average of the high and low errors.</li>
+      <li><strong>"What actually happened" is ERA5, not a weather station.</strong> ERA5 is the Copernicus reanalysis: a reconstruction of past weather from observations, on a grid of roughly 9 to 25 km. It smooths out very local effects - a sea breeze, a frost hollow, a city's warmth - so the errors here are model against grid, not model against your thermometer. It is also produced by ECMWF, which may slightly favour ECMWF's own model.</li>
+      <li><strong>The last week is missing.</strong> ERA5 is published about five days after the fact, so the period ends roughly a week ago.</li>
+      <li><strong>A month is a small sample.</strong> Models marked <span class="acc-tie">too close to call</span> are not clearly worse than the leader: their daily errors overlap its errors too much to separate them. Small differences, a tenth of a degree, are noise.</li>
+      <li><strong>Rain is the roughest score.</strong> Reanalysis rainfall is less reliable than its temperature, and a wet/dry call ignores how much rain fell. In dry spells nearly every model scores well.</li>
+      <li><strong>Accuracy here, not everywhere.</strong> The ranking is for this place, this period and this lead time. It changes with the season and from one town to the next, and a model's past month does not guarantee its next one. Several models switch to a regional high-resolution version near home (for example UKMO over the British Isles, ICON over Europe), so they can do much better there than elsewhere.</li>
+      <li><strong>A model is left out</strong> if Open-Meteo has fewer than ten scoreable days of its forecasts for the period.</li>
+    </ul>
+  </section>
+
+  <section class="acc-card acc-text" aria-labelledby="examplesTitle">
+    <h2 id="examplesTitle">Last month in London, New York and Sydney</h2>
+    <p>The same scoring for three cities, forecasts made 3 days ahead, ranked by temperature. Computed when this page was last published; choose a place above for live numbers.</p>
+    <div id="examples"><!-- snap:examples --><div class="acc-example"><h3>London</h3><p class="acc-summary">Most accurate here, 3 days ahead: <strong>ECMWF IFS</strong> (Europe). Its forecast highs and lows were off by 0.9 °C on average. Too close to call with it: ICON, ECMWF AIFS, JMA, ARPEGE and UKMO. Bottom of the table: GFS (1.4 °C).</p><div class="acc-wrap"><table class="acc"><thead><tr><th scope="col" class="pos">#</th><th scope="col">Model</th><th scope="col" class="num ranked">Temperature<span class="u">avg error</span></th><th scope="col" class="num">Highs<span class="u">avg error</span></th><th scope="col" class="num">Lows<span class="u">avg error</span></th><th scope="col">Tends to run</th><th scope="col" class="num">Rain<span class="u">wet/dry right</span></th><th scope="col" class="num">Days</th></tr></thead><tbody><tr class="lead"><td class="pos"><span class="medal" aria-hidden="true">🥇</span>1</td><th scope="row">ECMWF IFS<span class="org">Europe</span></th><td class="num ranked">0.9 °C</td><td class="num">0.9 °C</td><td class="num">0.8 °C</td><td>about right</td><td class="num">70%</td><td class="num">28</td></tr><tr class="tie"><td class="pos"><span class="medal" aria-hidden="true">🥈</span>2</td><th scope="row">ICON<span class="org">DWD, Germany</span><span class="acc-tie">too close to call</span></th><td class="num ranked">1.0 °C</td><td class="num">1.0 °C</td><td class="num">0.9 °C</td><td>about right</td><td class="num">78%</td><td class="num">28</td></tr><tr class="tie"><td class="pos"><span class="medal" aria-hidden="true">🥉</span>3</td><th scope="row">ECMWF AIFS<span class="org">Europe, AI</span><span class="acc-tie">too close to call</span></th><td class="num ranked">1.1 °C</td><td class="num">0.8 °C</td><td class="num">1.3 °C</td><td>0.9° too cold</td><td class="num">74%</td><td class="num">28</td></tr><tr class="tie"><td class="pos">4</td><th scope="row">JMA<span class="org">Japan</span><span class="acc-tie">too close to call</span></th><td class="num ranked">1.1 °C</td><td class="num">1.2 °C</td><td class="num">1.1 °C</td><td>about right</td><td class="num">67%</td><td class="num">28</td></tr><tr class="tie"><td class="pos">5</td><th scope="row">ARPEGE<span class="org">Météo-France</span><span class="acc-tie">too close to call</span></th><td class="num ranked">1.2 °C</td><td class="num">1.1 °C</td><td class="num">1.4 °C</td><td>0.5° too warm</td><td class="num">78%</td><td class="num">28</td></tr><tr class="tie"><td class="pos">6</td><th scope="row">UKMO<span class="org">Met Office, UK</span><span class="acc-tie">too close to call</span></th><td class="num ranked">1.3 °C</td><td class="num">1.1 °C</td><td class="num">1.4 °C</td><td>0.7° too warm</td><td class="num">81%</td><td class="num">28</td></tr><tr class=""><td class="pos">7</td><th scope="row">CMA GRAPES<span class="org">China</span></th><td class="num ranked">1.3 °C</td><td class="num">1.5 °C</td><td class="num">1.1 °C</td><td>0.9° too cold</td><td class="num">70%</td><td class="num">28</td></tr><tr class=""><td class="pos">8</td><th scope="row">GEM<span class="org">ECCC, Canada</span></th><td class="num ranked">1.3 °C</td><td class="num">1.1 °C</td><td class="num">1.5 °C</td><td>about right</td><td class="num">78%</td><td class="num">28</td></tr><tr class=""><td class="pos">9</td><th scope="row">GFS<span class="org">NOAA, US</span></th><td class="num ranked">1.4 °C</td><td class="num">1.6 °C</td><td class="num">1.2 °C</td><td>1.0° too warm</td><td class="num">78%</td><td class="num">28</td></tr></tbody></table></div><p class="acc-caption">Forecasts made 3 days ahead, checked against ERA5 for 28 days, 29 Aug – 25 Sept 2026; 6 of them wet (1 mm or more).</p></div><div class="acc-example"><h3>New York</h3><p class="acc-summary">Most accurate here, 3 days ahead: <strong>ECMWF AIFS</strong> (Europe, AI). Its forecast highs and lows were off by 0.8 °C on average. Too close to call with it: GEM and ECMWF IFS. Bottom of the table: UKMO (2.0 °C).</p><div class="acc-wrap"><table class="acc"><thead><tr><th scope="col" class="pos">#</th><th scope="col">Model</th><th scope="col" class="num ranked">Temperature<span class="u">avg error</span></th><th scope="col" class="num">Highs<span class="u">avg error</span></th><th scope="col" class="num">Lows<span class="u">avg error</span></th><th scope="col">Tends to run</th><th scope="col" class="num">Rain<span class="u">wet/dry right</span></th><th scope="col" class="num">Days</th></tr></thead><tbody><tr class="lead"><td class="pos"><span class="medal" aria-hidden="true">🥇</span>1</td><th scope="row">ECMWF AIFS<span class="org">Europe, AI</span></th><td class="num ranked">0.8 °C</td><td class="num">0.9 °C</td><td class="num">0.8 °C</td><td>about right</td><td class="num">93%</td><td class="num">28</td></tr><tr class="tie"><td class="pos"><span class="medal" aria-hidden="true">🥈</span>2</td><th scope="row">GEM<span class="org">ECCC, Canada</span><span class="acc-tie">too close to call</span></th><td class="num ranked">0.9 °C</td><td class="num">1.1 °C</td><td class="num">0.7 °C</td><td>about right</td><td class="num">81%</td><td class="num">28</td></tr><tr class="tie"><td class="pos"><span class="medal" aria-hidden="true">🥉</span>3</td><th scope="row">ECMWF IFS<span class="org">Europe</span><span class="acc-tie">too close to call</span></th><td class="num ranked">1.0 °C</td><td class="num">1.0 °C</td><td class="num">0.9 °C</td><td>0.3° too warm</td><td class="num">78%</td><td class="num">28</td></tr><tr class=""><td class="pos">4</td><th scope="row">CMA GRAPES<span class="org">China</span></th><td class="num ranked">1.2 °C</td><td class="num">1.2 °C</td><td class="num">1.2 °C</td><td>about right</td><td class="num">74%</td><td class="num">28</td></tr><tr class=""><td class="pos">5</td><th scope="row">ICON<span class="org">DWD, Germany</span></th><td class="num ranked">1.3 °C</td><td class="num">1.3 °C</td><td class="num">1.3 °C</td><td>0.8° too warm</td><td class="num">70%</td><td class="num">28</td></tr><tr class=""><td class="pos">6</td><th scope="row">GFS<span class="org">NOAA, US</span></th><td class="num ranked">1.4 °C</td><td class="num">1.2 °C</td><td class="num">1.6 °C</td><td>1.1° too warm</td><td class="num">81%</td><td class="num">28</td></tr><tr class=""><td class="pos">7</td><th scope="row">ARPEGE<span class="org">Météo-France</span></th><td class="num ranked">1.5 °C</td><td class="num">1.4 °C</td><td class="num">1.6 °C</td><td>0.9° too warm</td><td class="num">74%</td><td class="num">28</td></tr><tr class=""><td class="pos">8</td><th scope="row">JMA<span class="org">Japan</span></th><td class="num ranked">1.8 °C</td><td class="num">1.3 °C</td><td class="num">2.4 °C</td><td>0.9° too warm</td><td class="num">78%</td><td class="num">28</td></tr><tr class=""><td class="pos">9</td><th scope="row">UKMO<span class="org">Met Office, UK</span></th><td class="num ranked">2.0 °C</td><td class="num">1.9 °C</td><td class="num">2.0 °C</td><td>1.8° too warm</td><td class="num">81%</td><td class="num">28</td></tr></tbody></table></div><p class="acc-caption">Forecasts made 3 days ahead, checked against ERA5 for 28 days, 29 Aug – 25 Sept 2026; 13 of them wet (1 mm or more).</p></div><div class="acc-example"><h3>Sydney</h3><p class="acc-summary">Most accurate here, 3 days ahead: <strong>GEM</strong> (ECCC, Canada). Its forecast highs and lows were off by 0.8 °C on average. Too close to call with it: ECMWF IFS and JMA. Bottom of the table: ICON (2.1 °C).</p><div class="acc-wrap"><table class="acc"><thead><tr><th scope="col" class="pos">#</th><th scope="col">Model</th><th scope="col" class="num ranked">Temperature<span class="u">avg error</span></th><th scope="col" class="num">Highs<span class="u">avg error</span></th><th scope="col" class="num">Lows<span class="u">avg error</span></th><th scope="col">Tends to run</th><th scope="col" class="num">Rain<span class="u">wet/dry right</span></th><th scope="col" class="num">Days</th></tr></thead><tbody><tr class="lead"><td class="pos"><span class="medal" aria-hidden="true">🥇</span>1</td><th scope="row">GEM<span class="org">ECCC, Canada</span></th><td class="num ranked">0.8 °C</td><td class="num">0.7 °C</td><td class="num">0.8 °C</td><td>about right</td><td class="num">93%</td><td class="num">28</td></tr><tr class="tie"><td class="pos"><span class="medal" aria-hidden="true">🥈</span>2</td><th scope="row">ECMWF IFS<span class="org">Europe</span><span class="acc-tie">too close to call</span></th><td class="num ranked">0.9 °C</td><td class="num">0.9 °C</td><td class="num">0.8 °C</td><td>about right</td><td class="num">89%</td><td class="num">28</td></tr><tr class="tie"><td class="pos"><span class="medal" aria-hidden="true">🥉</span>3</td><th scope="row">JMA<span class="org">Japan</span><span class="acc-tie">too close to call</span></th><td class="num ranked">1.0 °C</td><td class="num">1.0 °C</td><td class="num">1.1 °C</td><td>about right</td><td class="num">89%</td><td class="num">28</td></tr><tr class=""><td class="pos">4</td><th scope="row">ECMWF AIFS<span class="org">Europe, AI</span></th><td class="num ranked">1.3 °C</td><td class="num">1.1 °C</td><td class="num">1.4 °C</td><td>about right</td><td class="num">85%</td><td class="num">28</td></tr><tr class=""><td class="pos">5</td><th scope="row">ARPEGE<span class="org">Météo-France</span></th><td class="num ranked">1.3 °C</td><td class="num">1.7 °C</td><td class="num">0.9 °C</td><td>1.0° too warm</td><td class="num">93%</td><td class="num">28</td></tr><tr class=""><td class="pos">6</td><th scope="row">UKMO<span class="org">Met Office, UK</span></th><td class="num ranked">1.3 °C</td><td class="num">1.2 °C</td><td class="num">1.5 °C</td><td>0.7° too warm</td><td class="num">89%</td><td class="num">28</td></tr><tr class=""><td class="pos">7</td><th scope="row">CMA GRAPES<span class="org">China</span></th><td class="num ranked">1.4 °C</td><td class="num">1.2 °C</td><td class="num">1.6 °C</td><td>0.6° too cold</td><td class="num">89%</td><td class="num">28</td></tr><tr class=""><td class="pos">8</td><th scope="row">GFS<span class="org">NOAA, US</span></th><td class="num ranked">1.5 °C</td><td class="num">1.9 °C</td><td class="num">1.1 °C</td><td>0.8° too warm</td><td class="num">93%</td><td class="num">28</td></tr><tr class=""><td class="pos">9</td><th scope="row">ICON<span class="org">DWD, Germany</span></th><td class="num ranked">2.1 °C</td><td class="num">2.6 °C</td><td class="num">1.6 °C</td><td>0.6° too warm</td><td class="num">85%</td><td class="num">28</td></tr></tbody></table></div><p class="acc-caption">Forecasts made 3 days ahead, checked against ERA5 for 28 days, 29 Aug – 25 Sept 2026; 3 of them wet (1 mm or more).</p></div><p class="acc-note">Computed on 2 October 2026.</p><!-- /snap:examples --></div>
+  </section>
+
+  <section class="acc-card acc-text faq" aria-labelledby="faqTitle">
+    <h2 id="faqTitle">Questions</h2>
+    <h3>Which weather forecast is most accurate?</h3>
+    <p>There is no single answer: it depends on where you are, the season, what you measure and how far ahead. Official global verification has long ranked ECMWF's IFS at or near the top for forecasts several days ahead, but at one particular place another model - often one that blends in a regional high-resolution model - can do better. The table on this page scores nine models for the place you choose.</p>
+    <h3>Is the European model (ECMWF) more accurate than the American model (GFS)?</h3>
+    <p>Averaged over the whole globe, ECMWF's IFS usually verifies better than NOAA's GFS for forecasts several days ahead. At a single place over a single month the order often flips, and the gap between them is frequently too small to call. Choose your place to see how they compare there.</p>
+    <h3>How is the accuracy measured?</h3>
+    <p>For every day in the period, each model's forecast made 1, 2, 3, 5 or 7 days earlier is taken from Open-Meteo's archive of previous model runs and compared with ERA5, the Copernicus reanalysis of what actually happened. The score is the average error in the daily high and low temperature, plus how often the model correctly called the day wet (1 mm of rain or more) or dry.</p>
+    <h3>Why does the table stop about a week ago?</h3>
+    <p>ERA5, the record of what actually happened, is published about five days after the fact. Using a faster source would mean scoring the models against one of the models themselves, so the most recent days are left out until ERA5 covers them.</p>
+    <h3>Why not use weather station readings?</h3>
+    <p>This page runs entirely in your browser, with no server or database, and free station data with worldwide coverage is not available that way. ERA5 is available for every point on Earth and treats every place the same way. It is a reconstruction from observations on a grid of roughly 9 to 25 km, so it smooths out very local effects, and it is produced by ECMWF, which may slightly favour ECMWF's own model.</p>
+    <h3>Is anything sent or stored?</h3>
+    <p>Nothing is tracked and there is no account. The coordinates of the place you choose go to Open-Meteo to fetch the forecasts and the ERA5 record, and anything you type in the search box goes to Photon to look the place up. Your choices are stored in this browser only.</p>
+  </section>
+
+  <p class="footer">Past forecasts from <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a>'s previous-runs archive and ERA5 reanalysis via Open-Meteo (CC BY 4.0). Contains modified Copernicus Climate Change Service information 2026.
+    Place search by <a href="https://photon.komoot.io/" rel="noopener">Photon</a>, data © <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a> contributors.
+    All scoring happens in your browser; no cookies or analytics.
+    Free, open source (MIT). <a href="/">Mean Weather</a> · More tools at <a href="https://games.adamwoodland.com/">Adam's Arcade</a> · Made by <a href="https://adamwoodland.com/">Adam Woodland</a> · Questions: <a href="mailto:adam@meanweather.net">adam@meanweather.net</a>. Design, code and content developed with the assistance of AI (Anthropic Claude).</p>
+</main>
+
+<script src="/accuracy.js"></script>
+</body>
+</html>

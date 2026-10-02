@@ -1,0 +1,61 @@
+/* /most-accurate-weather-forecast/ — on top of style.css, using its colour variables so the
+   neutral daytime look and Dark mode both apply. No inline CSS (strict-CSP fleet). */
+
+.crumb { margin: 0 0 2px; font-size: .85em; color: var(--dim-bg); }
+.crumb a { color: var(--dim-bg); }
+.brand h1 { font-size: 1.45rem; line-height: 1.25; }
+
+.acc-card {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin: 12px 0;
+  box-shadow: var(--shadow);
+}
+.acc-card a { color: var(--accent); }
+
+.acc-controls { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin-bottom: 12px; }
+.acc-ctl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.acc-lbl { color: var(--dim); font-size: .88em; }
+
+.acc-title { margin: 6px 0 4px; font-size: 1.1rem; }
+.acc-summary { margin: 0 0 10px; }
+.acc-summary:empty { display: none; }
+.acc-caption, .acc-note { margin: 8px 0 0; color: var(--dim); font-size: .85em; }
+.acc-caption:empty { display: none; }
+.acc-links { margin: 10px 0 0; font-size: .9em; }
+
+/* the league table */
+.acc-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table.acc { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+table.acc th, table.acc td { padding: 7px 10px; border-bottom: 1px solid var(--line-soft); text-align: left; vertical-align: top; white-space: nowrap; }
+table.acc thead th { color: var(--dim); font-size: .78em; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; vertical-align: bottom; }
+table.acc thead .u { display: block; text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--faint); }
+table.acc .num { text-align: right; }
+table.acc .pos { width: 3.2em; color: var(--dim); }
+table.acc .medal { margin-right: 4px; }
+table.acc tbody th { font-weight: 600; }
+table.acc .org { display: block; font-weight: 400; font-size: .82em; color: var(--faint); }
+table.acc .ranked { background: var(--accent-soft); font-weight: 600; }
+table.acc thead .ranked { color: var(--text); }
+table.acc tr.lead th, table.acc tr.lead td { font-weight: 700; }
+.acc-tie { display: inline-block; margin-top: 3px; padding: 1px 7px; border-radius: 999px; font-size: .74em; font-weight: 600;
+  border: 1px solid var(--accent); color: var(--accent); background: transparent; white-space: nowrap; }
+/* own line under the model name; block, not table, so the table's border-collapse (inherited) can't square the pill */
+table.acc .acc-tie { display: block; width: max-content; }
+
+/* explanatory sections */
+.acc-text h2 { margin: 0 0 8px; font-size: 1.1rem; }
+.acc-text h3 { margin: 14px 0 4px; font-size: 1rem; }
+.acc-text p { margin: 6px 0; }
+.acc-text ul { margin: 6px 0 0; padding-left: 1.2em; }
+.acc-text li { margin: 6px 0; }
+.acc-example { margin: 14px 0 0; }
+.acc-example h3 { margin-bottom: 6px; }
+
+@media (max-width: 600px) {
+  .brand h1 { font-size: 1.2rem; }
+  table.acc th, table.acc td { padding: 6px 6px; }
+}

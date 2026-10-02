@@ -28,9 +28,14 @@ agree and where they don't. Free, no account, no adverts, nothing tracked.
 
 ## How it works
 
-- A single static page: `index.html`, `style.css`, `app.js`. No build step, no backend, no
-  analytics scripts. Everything is served behind a strict Content-Security-Policy, so there is
-  no inline JavaScript or CSS.
+- Static files only: the forecast table (`index.html`, `style.css`, `app.js`) and the forecast
+  accuracy league table (`most-accurate-weather-forecast/index.html`, `accuracy.css`,
+  `accuracy.js`). No build step, no backend, no analytics scripts. Everything is served behind a
+  strict Content-Security-Policy, so there is no inline JavaScript or CSS.
+- The accuracy page scores the nine models for a place entirely in the browser: two more
+  keyless Open-Meteo requests, the previous-runs API (each model's forecast made 1–7 days
+  ahead) and the archive API pinned to ERA5 reanalysis (what actually happened). ERA5 lags
+  about five days, so the scored period ends roughly a week ago.
 - Three keyless, CORS-enabled Open-Meteo requests per place: daily variables (the table renders
   from this alone), hourly variables (fills the expandable rows), and the previous-runs API
   (trend arrows). All models come back in one response each.
