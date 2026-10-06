@@ -1,4 +1,4 @@
-/* meanweather.net — loaded in <head> by both pages (the forecast table and /most-accurate-weather-forecast/)
+/* weathermodels.app — loaded in <head> by both pages (the forecast table and /most-accurate-weather-forecast/)
  * so the background is right before the first paint, instead of flashing the daytime look:
  *   Dark mode (cw-v3.mode)                         -> plain black, as on the forecast page
  *   the forecast page's last sky for this place     -> exactly what it showed (cw-sky-v1,

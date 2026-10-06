@@ -1,4 +1,4 @@
-/* meanweather.net — multi-model forecast table.
+/* weathermodels.app (formerly meanweather.net) — multi-model forecast table.
  *
  * Three keyless, CORS-enabled Open-Meteo requests per place:
  *   1. daily variables for every model  -> the table renders from this alone (fast first paint)

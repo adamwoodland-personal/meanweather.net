@@ -1,6 +1,6 @@
-# meanweather.net
+# Weather Models — weathermodels.app
 
-**Live: <https://meanweather.net/>**
+**Live: <https://weathermodels.app/>** (formerly meanweather.net, which redirects here)
 
 Nine global weather forecast models in one compact table. Each cell shows the **minimum, mean
 and maximum** forecast across the models, one row per day, so you can see at a glance where they

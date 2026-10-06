@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://meanweather.net/sitemap.xml
+Sitemap: https://weathermodels.app/sitemap.xml

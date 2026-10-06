@@ -1,4 +1,4 @@
-/* meanweather.net — /most-accurate-weather-forecast/: which model's forecasts for a place
+/* weathermodels.app — /most-accurate-weather-forecast/: which model's forecasts for a place
  * turned out best. Everything runs in the browser, two keyless Open-Meteo requests:
  *   1. previous-runs API -> what each model forecast for every hour of the period, made
  *      N days (1, 2, 3, 5 or 7) ahead

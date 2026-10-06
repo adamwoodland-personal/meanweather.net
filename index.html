@@ -3,25 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mean Weather — nine forecast models, one table</title>
+<title>Weather Models — compare nine forecast models in one table</title>
 <meta name="description" content="Compare nine global weather models side by side: the min, mean and max forecast for temperature, rain, wind and more, one row per day with hourly detail on demand. Free, no account, nothing tracked.">
 <meta name="keywords" content="weather model comparison, compare weather models, ECMWF vs GFS, multi-model forecast, forecast model spread, ECMWF, GFS, ICON, UKMO, ARPEGE, GEM, JMA, Open-Meteo">
-<link rel="canonical" href="https://meanweather.net/">
+<link rel="canonical" href="https://weathermodels.app/">
 
 <meta property="og:type"        content="website">
-<meta property="og:url"         content="https://meanweather.net/">
-<meta property="og:site_name"   content="meanweather.net">
-<meta property="og:title"       content="Mean Weather — nine forecast models, one table">
+<meta property="og:url"         content="https://weathermodels.app/">
+<meta property="og:site_name"   content="Weather Models">
+<meta property="og:title"       content="Weather Models — compare nine forecast models in one table">
 <meta property="og:description" content="Every cell shows the min, mean and max across nine global weather models, one row per day. Free, no account, nothing tracked.">
-<meta property="og:image"       content="https://meanweather.net/og-image.png">
+<meta property="og:image"       content="https://weathermodels.app/og-image.png">
 <meta property="og:image:width"  content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt"   content="Mean Weather: a forecast table where each cell shows the minimum, mean and maximum across nine weather models">
+<meta property="og:image:alt"   content="Weather Models: a forecast table where each cell shows the minimum, mean and maximum across nine weather models">
 <meta property="og:locale"      content="en_GB">
 <meta name="twitter:card"        content="summary_large_image">
-<meta name="twitter:title"       content="Mean Weather — nine forecast models, one table">
+<meta name="twitter:title"       content="Weather Models — compare nine forecast models in one table">
 <meta name="twitter:description" content="Every cell shows the min, mean and max across nine global weather models, one row per day. Free, no account, nothing tracked.">
-<meta name="twitter:image"       content="https://meanweather.net/og-image.png">
+<meta name="twitter:image"       content="https://weathermodels.app/og-image.png">
 
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -36,9 +36,9 @@
 {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  "name": "Mean Weather",
-  "alternateName": "meanweather.net",
-  "url": "https://meanweather.net/",
+  "name": "Weather Models",
+  "alternateName": ["weathermodels.app", "Mean Weather"],
+  "url": "https://weathermodels.app/",
   "description": "Compare nine global weather forecast models side by side. Every cell shows the minimum, mean and maximum forecast across the models, one row per day, with hourly detail on demand. Runs entirely in the browser; free, no account, nothing tracked.",
   "applicationCategory": "UtilitiesApplication",
   "operatingSystem": "Any",
@@ -96,7 +96,7 @@
 
 <header class="top">
   <div class="brand">
-    <h1>Mean Weather</h1>
+    <h1>Weather Models</h1>
     <p class="sub">Nine global models, one row per day: <span class="k lo">min</span> <strong class="k mean">mean</strong> <span class="k hi">max</span>, purple when they <span id="disagree" class="hint" tabindex="0">disagree</span>. Click a day for hours, tap or hover a cell for each model.</p>
   </div>
   <div class="where">
@@ -169,7 +169,7 @@
 
   <div id="pop" class="pop" hidden role="dialog" aria-label="Details"></div>
 
-  <noscript><p class="status">Mean Weather needs JavaScript to fetch and compare the forecasts. Nothing is tracked with it.</p></noscript>
+  <noscript><p class="status">Weather Models needs JavaScript to fetch and compare the forecasts. Nothing is tracked with it.</p></noscript>
 
   <a class="acc-promo" href="/most-accurate-weather-forecast/">
     <span class="acc-promo-icon" aria-hidden="true">🏆</span>
@@ -178,7 +178,7 @@
   </a>
 
   <details class="about">
-    <summary>About Mean Weather</summary>
+    <summary>About Weather Models</summary>
     <dl>
       <dt>What do the three numbers in a cell mean?</dt>
       <dd>The lowest, the mean (or the median, switchable in the toolbar) and the highest forecast across the weather models that are switched on. Purple outer numbers mean the models disagree by more than usual for that column. The big number is tinted by its value: blue for cold or wet, orange and red for hot, strong wind or high UV; ordinary values stay plain.</dd>
@@ -194,7 +194,7 @@
   <p class="footer">Forecast data via <a href="https://open-meteo.com/" rel="noopener">Open-Meteo</a> (CC BY 4.0), trend arrows from its previous-runs archive.
     Place search by <a href="https://photon.komoot.io/" rel="noopener">Photon</a>, data © <a href="https://www.openstreetmap.org/copyright" rel="noopener">OpenStreetMap</a> contributors.
     Over HTTPS, the coordinates of the place you choose go to Open-Meteo and your search text (or "Find me" position, only when you press it) goes to Photon; nothing else leaves this browser, and no cookies or analytics are used. Place, units, sources and columns are stored locally.
-    Free, open source (MIT). More tools at <a href="https://games.adamwoodland.com/">Adam's Arcade</a> · Made by <a href="https://adamwoodland.com/">Adam Woodland</a> · Questions: <a href="mailto:adam@meanweather.net">adam@meanweather.net</a>. Design, code and content developed with the assistance of AI (Anthropic Claude).</p>
+    Free, open source (MIT). More tools at <a href="https://games.adamwoodland.com/">Adam's Arcade</a> · Made by <a href="https://adamwoodland.com/">Adam Woodland</a> · Questions: <a href="mailto:adam@weathermodels.app">adam@weathermodels.app</a>. Design, code and content developed with the assistance of AI (Anthropic Claude).</p>
 </main>
 
 <script src="app.js"></script>

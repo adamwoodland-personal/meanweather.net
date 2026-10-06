@@ -1,6 +1,6 @@
-# meanweather.net
+# Weather Models (weathermodels.app)
 
-> Mean Weather compares nine global weather forecast models side by side, one row per day. Every cell shows the minimum, mean and maximum forecast across the models, so the spread between them is visible at a glance. Free, no account, nothing tracked; everything runs in the browser.
+> Weather Models compares nine global weather forecast models side by side, one row per day. Every cell shows the minimum, mean and maximum forecast across the models, so the spread between them is visible at a glance. Free, no account, nothing tracked; everything runs in the browser.
 
 Models compared (via Open-Meteo, all keyless and open): ECMWF IFS, ECMWF AIFS (AI), NOAA GFS, DWD ICON, Met Office UKMO, Météo-France ARPEGE, ECCC GEM, JMA and CMA GRAPES. The "seamless" variants blend each agency's regional high-resolution model where one exists, so the same nine sources work anywhere in the world.
 
@@ -10,13 +10,15 @@ Each day expands into hourly rows (or 3-hour blocks) with the same min/mean/max 
 
 Place search uses Photon (OpenStreetMap data) with Open-Meteo's geocoder as fallback; "Find me" uses the browser's location only when clicked. Privacy: the chosen coordinates are sent to Open-Meteo and the search text (or Find-me position) to Photon, all over HTTPS; nothing else leaves the browser and there are no cookies or analytics. Units switch between °C/km/h/mm and °F/mph/in.
 
+Formerly meanweather.net ("Mean Weather"); renamed 2026-10-06, and the old address redirects here.
+
 Technical: static files only (the forecast table: index.html, style.css, app.js; the accuracy page: most-accurate-weather-forecast/, accuracy.js, accuracy.css), MIT-licensed, no build step, no backend, no analytics. Forecast data © Open-Meteo (CC BY 4.0); place data © OpenStreetMap contributors.
 
 ## Links
 
-- [Forecast table](https://meanweather.net/): the app itself
-- [Which weather forecast is most accurate where you are](https://meanweather.net/most-accurate-weather-forecast/): league table of the nine models for any place, scored in the browser against ERA5 reanalysis (daily high and low error, warm/cold bias, wet/dry calls) for forecasts made 1, 2, 3, 5 or 7 days ahead over the last 30 or 90 days, with a "too close to call" test; ERA5 lags about five days, so the period ends roughly a week ago. Pre-rendered examples for London, New York and Sydney. Same `?at=lat,lon&n=` links, plus `lead=`, `days=` and `by=temp|hi|lo|rain`
-- [Shareable view](https://meanweather.net/?at=51.5074,-0.1278&n=London): `?at=lat,lon` opens a place directly; optional `n=` (name), `cols=` (comma-separated column keys), `off=` (model ids switched off), `units=imperial`, `step=1`, `avg=median`, `tmp=1` (show without remembering)
+- [Forecast table](https://weathermodels.app/): the app itself
+- [Which weather forecast is most accurate where you are](https://weathermodels.app/most-accurate-weather-forecast/): league table of the nine models for any place, scored in the browser against ERA5 reanalysis (daily high and low error, warm/cold bias, wet/dry calls) for forecasts made 1, 2, 3, 5 or 7 days ahead over the last 30 or 90 days, with a "too close to call" test; ERA5 lags about five days, so the period ends roughly a week ago. Pre-rendered examples for London, New York and Sydney. Same `?at=lat,lon&n=` links, plus `lead=`, `days=` and `by=temp|hi|lo|rain`
+- [Shareable view](https://weathermodels.app/?at=51.5074,-0.1278&n=London): `?at=lat,lon` opens a place directly; optional `n=` (name), `cols=` (comma-separated column keys), `off=` (model ids switched off), `units=imperial`, `step=1`, `avg=median`, `tmp=1` (show without remembering)
 
 ## Related
 
@@ -25,4 +27,4 @@ Technical: static files only (the forecast table: index.html, style.css, app.js;
 
 ## Contact
 
-- adam@meanweather.net
+- adam@weathermodels.app
