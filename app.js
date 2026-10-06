@@ -765,13 +765,21 @@
     return kind.fmt(v, imp) + (kind.sign || '');
   }
 
+  // Worded as a change only, never "was X, now Y". The earlier runs only exist as hourly values,
+  // so both ends of the comparison are built from hourly figures - and for the 3- and 6-hourly
+  // models (JMA most of all) Open-Meteo's hourly series can add up to something different from its
+  // own daily figure, which is what the cell shows. Quoting the hourly-based "now" next to the
+  // cell's number read as a contradiction (2026-10-06: rain "now 2.0" beside a cell showing 1.5).
   function driftText(col, dr) {
     var kind = KINDS[col.kind], imp = imperial();
     if (!dr) return state.prevReady ? 'No earlier run reaches this day yet.' : '';
     var what = dr.lag + ' day' + (dr.lag > 1 ? 's' : '') + ' ago';
-    var d = dr.delta, sign = d < 0 ? '−' : '+';
-    return 'Trend: ' + what + ' the models’ ' + state.avg + ' was ' + fine(kind, dr.from, imp) +
-      ', now ' + fine(kind, dr.to, imp) + ' (' + sign + fine(kind, Math.abs(d), imp) + ', ' + dr.n + ' models).';
+    var who = ' (' + state.avg + ' of ' + dr.n + ' models).';
+    var amt = fine(kind, Math.abs(dr.delta), imp);
+    if (parseFloat(amt) === 0) return 'Trend: about the same as the models forecast ' + what + who;
+    var words = kind.cls === 'deg' ? ['warmer', 'cooler'] : ['wetter', 'drier'];
+    return 'Trend: ' + amt + (kind.sign ? '' : ' ' + kind.unit(imp)) + ' ' + words[dr.delta > 0 ? 0 : 1] +
+      ' than the models forecast ' + what + who;
   }
 
   function tooltip(col, d) {
