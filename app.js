@@ -4,6 +4,8 @@
  *   1. daily variables for every model  -> the table renders from this alone (fast first paint)
  *   2. hourly variables for every model -> fills the expandable hour rows (+ is_day for night shading)
  *   3. previous-runs API                 -> what each model said 1, 2 and 3 days ago, for the drift arrows
+ *                                           (only for the arrow columns on show; more are fetched when a
+ *                                           column is switched on)
  * Each cell shows min / mean / max across whichever models are switched on (circular mean for wind
  * direction, most-common answer for the weather code). Hover a cell for a tooltip, or tap/click it
  * for the same breakdown in a popover (touch devices have no hover).
@@ -53,8 +55,12 @@
    * wide   -> min–max spread that flags disagreement, in the metric unit Open-Meteo returns
    *           (°C, mm, cm, km/h, %, hPa, seconds); scaled by KINDS[kind].scale for imperial.
    * hwide  -> the same for hour rows, when a different threshold makes sense.
-   * drift  -> {agg, thr}: how to fold a previous run's hours into a day value, and the change
-   *           in the models' mean (metric units) that earns an arrow.
+   * drift  -> {agg, thr, words}: how to fold a previous run's hours into a day value (max, min,
+   *           sum or mean), the change in the models' mean (metric units) that earns an arrow, and
+   *           the [up, down] words for the trend line ("warmer"/"cooler" by default for temperatures).
+   *           Only variables Open-Meteo's previous-runs archive keeps can have one: it has no
+   *           precipitation_probability or uv_index, and wet hours, wind direction and the weather
+   *           code are not up/down quantities.
    * desc   -> the header tooltip and the Columns panel text.
    */
   function round(v) { return String(Math.round(v)); }
@@ -83,36 +89,47 @@
       drift: { agg: 'min', thr: 1 },
       desc: 'Lowest air temperature of the day, 2 m above ground. Hour rows show the temperature for that hour. The small arrow shows whether the models’ mean has moved by 1° or more since their run three days ago.' },
     { key: 'feelsHigh', label: 'Feels high', kind: 'temp',   daily: 'apparent_temperature_max',      hourly: 'apparent_temperature',      wide: 4,
-      desc: 'Highest "feels like" temperature: air temperature adjusted for humidity, wind and sunshine.' },
+      drift: { agg: 'max', thr: 1 },
+      desc: 'Highest "feels like" temperature: air temperature adjusted for humidity, wind and sunshine. The small arrow shows whether the models’ mean has moved by 1° or more since their run three days ago.' },
     { key: 'feelsLow',  label: 'Feels low',  kind: 'temp',   daily: 'apparent_temperature_min',      hourly: 'apparent_temperature',      wide: 4,
-      desc: 'Lowest "feels like" temperature: air temperature adjusted for humidity, wind and sunshine.' },
+      drift: { agg: 'min', thr: 1 },
+      desc: 'Lowest "feels like" temperature: air temperature adjusted for humidity, wind and sunshine. The small arrow shows whether the models’ mean has moved by 1° or more since their run three days ago.' },
     { key: 'rain',      label: 'Rain',       kind: 'precip', daily: 'precipitation_sum',             hourly: 'precipitation',             wide: 5, hwide: 2,
-      drift: { agg: 'sum', thr: 1 },
+      drift: { agg: 'sum', thr: 1, words: ['wetter', 'drier'] },
       desc: 'Total precipitation for the day: rain, showers and melted snow. Hour rows show the amount falling in that hour. The small arrow shows whether the models’ mean has moved by 1 mm or more since their run three days ago.' },
     { key: 'pop',       label: 'Chance',     kind: 'pct',    daily: 'precipitation_probability_max', hourly: 'precipitation_probability', wide: 40,
       desc: 'Chance of at least 0.1 mm of precipitation in an hour, from each model’s ensemble spread. The day value is the wettest hour’s chance. Only ECMWF IFS, GFS, ICON, UKMO and GEM publish it.' },
     { key: 'wetHours',  label: 'Wet hours',  kind: 'hours',  daily: 'precipitation_hours',           hourly: null,                        wide: 4,
       desc: 'Number of hours in the day with measurable precipitation. Day rows only.' },
     { key: 'snow',      label: 'Snow',       kind: 'snow',   daily: 'snowfall_sum',                  hourly: 'snowfall',                  wide: 3, hwide: 1,
-      desc: 'Snowfall depth for the day, about 7× the water equivalent.' },
+      drift: { agg: 'sum', thr: 1, words: ['more snow', 'less snow'] },
+      desc: 'Snowfall depth for the day, about 7× the water equivalent. The small arrow shows whether the models’ mean has moved by 1 cm or more since their run three days ago.' },
     { key: 'wind',      label: 'Wind',       kind: 'speed',  daily: 'wind_speed_10m_max',            hourly: 'wind_speed_10m',            wide: 15,
-      desc: 'Highest sustained wind speed of the day at 10 m (10-minute average, not gusts).' },
+      drift: { agg: 'max', thr: 5, words: ['windier', 'calmer'] },
+      desc: 'Highest sustained wind speed of the day at 10 m (10-minute average, not gusts). The small arrow shows whether the models’ mean has moved by 5 km/h or more since their run three days ago.' },
     { key: 'windMean',  label: 'Wind avg',   kind: 'speed',  daily: 'wind_speed_10m_mean',           hourly: 'wind_speed_10m',            wide: 15,
-      desc: 'Average sustained wind speed over the day at 10 m.' },
+      drift: { agg: 'mean', thr: 4, words: ['windier', 'calmer'] },
+      desc: 'Average sustained wind speed over the day at 10 m. The small arrow shows whether the models’ mean has moved by 4 km/h or more since their run three days ago.' },
     { key: 'gust',      label: 'Gusts',      kind: 'speed',  daily: 'wind_gusts_10m_max',            hourly: 'wind_gusts_10m',            wide: 20,
-      desc: 'Strongest gust of the day at 10 m. Not published by ECMWF AIFS or JMA.' },
+      drift: { agg: 'max', thr: 8, words: ['stronger gusts', 'weaker gusts'] },
+      desc: 'Strongest gust of the day at 10 m. Not published by ECMWF AIFS or JMA. The small arrow shows whether the models’ mean has moved by 8 km/h or more since their run three days ago.' },
     { key: 'windDir',   label: 'Wind dir',   kind: 'dir',    daily: 'wind_direction_10m_dominant',   hourly: 'wind_direction_10m',        wide: 90,
       desc: 'Where the wind comes from. The arrow flies with the wind (a north wind points down the page); the outer letters are the most anticlockwise and clockwise models, and the tooltip lists each one. Purple when they span 90° or more.' },
     { key: 'cloud',     label: 'Cloud',      kind: 'pct',    daily: 'cloud_cover_mean',              hourly: 'cloud_cover',               wide: 40,
-      desc: 'Total cloud cover as a share of the sky, averaged over the day.' },
+      drift: { agg: 'mean', thr: 15, words: ['cloudier', 'clearer'] },
+      desc: 'Total cloud cover as a share of the sky, averaged over the day. The small arrow shows whether the models’ mean has moved by 15% or more since their run three days ago.' },
     { key: 'humidity',  label: 'Humidity',   kind: 'pct',    daily: 'relative_humidity_2m_mean',     hourly: 'relative_humidity_2m',      wide: 25,
-      desc: 'Relative humidity at 2 m, averaged over the day.' },
+      drift: { agg: 'mean', thr: 8, words: ['more humid', 'less humid'] },
+      desc: 'Relative humidity at 2 m, averaged over the day. The small arrow shows whether the models’ mean has moved by 8% or more since their run three days ago.' },
     { key: 'dew',       label: 'Dew point',  kind: 'temp',   daily: 'dew_point_2m_mean',             hourly: 'dew_point_2m',              wide: 4,
-      desc: 'Dew point at 2 m, averaged over the day. Above about 18 °C (64 °F) feels muggy.' },
+      drift: { agg: 'mean', thr: 1, words: ['higher', 'lower'] },
+      desc: 'Dew point at 2 m, averaged over the day. Above about 18 °C (64 °F) feels muggy. The small arrow shows whether the models’ mean has moved by 1° or more since their run three days ago.' },
     { key: 'pressure',  label: 'Pressure',   kind: 'hpa',    daily: 'pressure_msl_mean',             hourly: 'pressure_msl',              wide: 6,
-      desc: 'Atmospheric pressure reduced to sea level, averaged over the day.' },
+      drift: { agg: 'mean', thr: 3, words: ['higher', 'lower'] },
+      desc: 'Atmospheric pressure reduced to sea level, averaged over the day. The small arrow shows whether the models’ mean has moved by 3 hPa or more since their run three days ago.' },
     { key: 'sun',       label: 'Sunshine',   kind: 'sunH',   hkind: 'sunMin', daily: 'sunshine_duration', hourly: 'sunshine_duration',   wide: 10800, hwide: 1800,
-      desc: 'Hours of direct sunshine in the day (minutes in the hour rows). Not published by JMA.' },
+      drift: { agg: 'sum', thr: 3600, words: ['more sunshine', 'less sunshine'] },
+      desc: 'Hours of direct sunshine in the day (minutes in the hour rows). Not published by JMA. The small arrow shows whether the models’ mean has moved by 1 hour or more since their run three days ago.' },
     { key: 'uv',        label: 'UV',         kind: 'uv',     daily: 'uv_index_max',                  hourly: 'uv_index',                  wide: 3,
       desc: 'Peak clear-sky UV index. GFS is the only model that publishes it, so the cell shows that single value instead of a min–mean–max spread.' },
     { key: 'sky',       label: 'Sky',        kind: 'code',   daily: 'weather_code',                  hourly: 'weather_code',
@@ -158,7 +175,9 @@
     cols: [],             // [{key, on}] in display order
     data: null,           // see normaliseDaily(); hours + prev attached later
     hourlyReady: false,
-    prevReady: false,
+    prevReady: false,     // no earlier-run request in flight
+    prevVars: {},         // hourly variable -> true once its earlier runs are fetched (or failed) for this place
+    prevPending: {},      // hourly variable -> true while its request is in flight
     hourlyError: null,    // sticks until the next refresh, even after the trend request succeeds
     fetchedAt: 0,         // when the daily forecast last arrived (drives the 'updated' note and re-fetching)
     nowShown: '',         // the hour key the table was last rendered for
@@ -345,9 +364,9 @@
     return getJson(u, 'Open-Meteo hourly');
   }
 
-  function fetchPrev(place) {
+  function fetchPrev(place, hourlyVars) {
     var vars = [];
-    uniq(COLUMNS.filter(function (c) { return c.drift; }).map(function (c) { return c.hourly; })).forEach(function (v) {
+    hourlyVars.forEach(function (v) {
       vars.push(v);
       LAGS.forEach(function (l) { vars.push(v + '_previous_day' + l); });
     });
@@ -484,11 +503,12 @@
     });
   }
 
-  // fold previous-run hours into per-day values: prev[colKey][lag][modelId]
-  function attachPrev(j) {
+  // fold previous-run hours into per-day values: prev[colKey][lag][modelId], for the columns whose
+  // hourly variable is in `vars` (columns fetched earlier keep theirs)
+  function attachPrev(j, vars) {
     var h = j.hourly, idx = {};
-    state.data.days.forEach(function (day, i) { idx[day.date] = i; day.prev = {}; });
-    COLUMNS.filter(function (c) { return c.drift; }).forEach(function (c) {
+    state.data.days.forEach(function (day, i) { idx[day.date] = i; day.prev = day.prev || {}; });
+    COLUMNS.filter(function (c) { return c.drift && vars.indexOf(c.hourly) >= 0; }).forEach(function (c) {
       var lags = [0].concat(LAGS);
       state.data.days.forEach(function (day) {
         day.prev[c.key] = {};
@@ -512,7 +532,7 @@
           Object.keys(acc).forEach(function (d) {
             var a = acc[d];
             if (a.n < MIN_HOURS || !(d in idx)) return;
-            var val = c.drift.agg === 'max' ? a.max : c.drift.agg === 'min' ? a.min : a.sum;
+            var g = c.drift.agg, val = g === 'max' ? a.max : g === 'min' ? a.min : g === 'mean' ? a.sum / a.n : a.sum;
             state.data.days[idx[d]].prev[c.key][l][m.id] = val;
           });
         });
@@ -777,9 +797,9 @@
     var who = ' (' + state.avg + ' of ' + dr.n + ' models).';
     var amt = fine(kind, Math.abs(dr.delta), imp);
     if (parseFloat(amt) === 0) return 'Trend: about the same as the models forecast ' + what + who;
-    var words = kind.cls === 'deg' ? ['warmer', 'cooler'] : ['wetter', 'drier'];
-    return 'Trend: ' + amt + (kind.sign ? '' : ' ' + kind.unit(imp)) + ' ' + words[dr.delta > 0 ? 0 : 1] +
-      ' than the models forecast ' + what + who;
+    var words = col.drift.words || ['warmer', 'cooler'];
+    var unit = kind.sign ? '' : kind.unit(imp) === '%' ? '%' : ' ' + kind.unit(imp);
+    return 'Trend: ' + amt + unit + ' ' + words[dr.delta > 0 ? 0 : 1] + ' than the models forecast ' + what + who;
   }
 
   function tooltip(col, d) {
@@ -1250,6 +1270,31 @@
 
   /* ---------------- actions ---------------- */
 
+  // Fetch the earlier runs for the arrow columns on show that are not fetched (or in flight) yet.
+  // Only what is visible is asked for, so the request stays small; switching a column on calls this again.
+  function loadPrev(token) {
+    var need = uniq(visibleCols().filter(function (c) { return c.drift; }).map(function (c) { return c.hourly; }))
+      .filter(function (v) { return !state.prevVars[v] && !state.prevPending[v]; });
+    if (!need.length) { state.prevReady = !Object.keys(state.prevPending).length; return; }
+    need.forEach(function (v) { state.prevPending[v] = true; });
+    state.prevReady = false;
+    var done = function () {
+      need.forEach(function (v) { delete state.prevPending[v]; state.prevVars[v] = true; });
+      state.prevReady = !Object.keys(state.prevPending).length;
+    };
+    fetchPrev(state.place, need).then(function (jp) {
+      if (token !== state.token) return;
+      attachPrev(jp, need);
+      done();
+      renderTable();
+      loadingStatus();
+    }).catch(function () {
+      if (token !== state.token) return;
+      done();   // no arrows for these columns, but nothing else is lost
+      loadingStatus();
+    });
+  }
+
   function refresh() {
     var token = ++state.token;
     var place = state.place;
@@ -1259,6 +1304,8 @@
     renderPlace();
     state.data = null;
     state.hourlyReady = state.prevReady = false;
+    state.prevVars = {};
+    state.prevPending = {};
     state.hourlyError = null;
     renderTable();
     applyTheme();   // back to the neutral look while the new place loads
@@ -1291,17 +1338,8 @@
         loadingStatus();
       });
 
-      fetchPrev(place).then(function (jp) {
-        if (token !== state.token) return;
-        attachPrev(jp);
-        state.prevReady = true;
-        renderTable();
-        loadingStatus();
-      }).catch(function () {
-        if (token !== state.token) return;
-        state.prevReady = true;   // no arrows, but nothing else is lost
-        loadingStatus();
-      });
+      loadPrev(token);
+      loadingStatus();
     }).catch(function (e) {
       if (token !== state.token) return;
       setStatus('Could not load the forecast: ' + e.message, true);
@@ -1322,6 +1360,7 @@
     save();
     renderColumns();
     renderHead();
+    if (state.data) { loadPrev(state.token); loadingStatus(); }   // a newly shown arrow column needs its earlier runs
     renderTable();
   }
 

@@ -19,8 +19,11 @@ agree and where they don't. Free, no account, no adverts, nothing tracked.
   feels-like, rain, chance of rain, wet hours, snow, wind, wind average, gusts, wind direction
   (circular mean), cloud, humidity, dew point, pressure, sunshine, UV and a "Sky" summary
   (the most common WMO weather code, with how many models agree).
-- **Trend arrows** on High, Low and Rain: whether the models' mean has moved by 1° / 1 mm since
-  their run three days ago, from Open-Meteo's previous-runs archive.
+- **Trend arrows** on most number columns (High, Low, Feels high/low, Rain, Snow, Wind, Wind avg,
+  Gusts, Cloud, Humidity, Dew point, Pressure, Sunshine): whether the models' mean has moved by a
+  meaningful amount (1°, 1 mm, 5 km/h, 15% cloud…) since their run three days ago, from Open-Meteo's
+  previous-runs archive. Only the columns on show are fetched; switching one on fetches its history.
+  Chance and UV have none: the archive does not keep them.
 - **Hover or tap any cell** for every model's value, lowest to highest. Click a column header for
   what it means.
 - Place search (Photon / OpenStreetMap, with Open-Meteo's geocoder as fallback), an opt-in
