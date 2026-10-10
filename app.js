@@ -1401,6 +1401,18 @@
 
   function hideResults() { $('#locResults').hidden = true; }
 
+  // An iPhone Home Screen app follows Location Services > System Services > In-App Web Browsing
+  // (not Safari Websites), and only reads it when the app starts (found on whatsacross.com
+  // 2026-10-10), so say where the switch is when Find me is refused there. accuracy.js has
+  // the same check - keep the two in step.
+  var UA = navigator.userAgent;
+  var IOS_APP = (/iPhone|iPad|iPod/.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1)) &&
+    (navigator.standalone === true || matchMedia('(display-mode: standalone)').matches);
+  function iosAppHint() {
+    return 'Location is blocked. On ' + (/iPad|Macintosh/.test(UA) ? 'iPad' : 'iPhone') +
+      ', an app added to the Home Screen needs Settings › Privacy & Security › Location Services › System Services › In-App Web Browsing switched on - then close this app fully (swipe it away in the app switcher) and open it again. Search for a place in the meantime.';
+  }
+
   function findMe() {
     var btn = $('#findMe');
     if (!navigator.geolocation) { setStatus('This browser cannot report a location.', true); return; }
@@ -1419,6 +1431,7 @@
       });
     }, function (err) {
       btn.disabled = false;
+      if (IOS_APP && (err.code === 1 || err.code === 2)) { setStatus(iosAppHint(), true); return; }
       var why = err.code === 1 ? 'the browser or site policy blocked it' :
                 err.code === 2 ? 'no position available' : 'it timed out';
       setStatus('Could not get your location (' + why + '). Search for a place instead.', true);

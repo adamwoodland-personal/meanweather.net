@@ -546,6 +546,16 @@
     });
     ul.hidden = false;
   }
+  // iPhone Home Screen app: Location Services > System Services > In-App Web Browsing, read only
+  // at app start. Same check as app.js - keep the two in step.
+  var UA = navigator.userAgent;
+  var IOS_APP = (/iPhone|iPad|iPod/.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1)) &&
+    (navigator.standalone === true || matchMedia('(display-mode: standalone)').matches);
+  function iosAppHint() {
+    return 'Location is blocked. On ' + (/iPad|Macintosh/.test(UA) ? 'iPad' : 'iPhone') +
+      ', an app added to the Home Screen needs Settings › Privacy & Security › Location Services › System Services › In-App Web Browsing switched on - then close this app fully (swipe it away in the app switcher) and open it again. Search for a place in the meantime.';
+  }
+
   function findMe() {
     var btn = $('#findMe');
     btn.disabled = true;
@@ -565,6 +575,7 @@
       }).catch(function () { /* keep "Your location" */ });
     }, function (err) {
       btn.disabled = false;
+      if (IOS_APP && (err.code === 1 || err.code === 2)) { setStatus(iosAppHint(), true); return; }
       setStatus('Could not get your location (' + (err.code === 1 ? 'permission was refused' : err.code === 2 ? 'no position available' : 'it timed out') + '). Search for a place instead.', true);
     }, { timeout: 15000, maximumAge: 600000 });
   }
